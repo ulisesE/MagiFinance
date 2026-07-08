@@ -6,10 +6,10 @@ const CACHE_NAME = 'magifinance-cache-v1';
 
 // Recursos esenciales a cachear inmediatamente
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/favicon.svg',
-  '/manifest.json',
+  './',
+  './index.html',
+  './favicon.svg',
+  './manifest.json',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap',
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,-50..200'
 ];
@@ -80,7 +80,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Si falla la red y es una navegación HTML, retornar index.html
           if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('/');
+            return caches.match('./index.html');
           }
         });
     })

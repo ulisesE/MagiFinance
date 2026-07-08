@@ -3,6 +3,8 @@
  * Registra rutas, inicializa el enrutador y controla los ciclos de vida generales.
  */
 
+import './styles/variables.css';
+import './styles/main.css';
 import { Router } from './utils/router';
 import { renderDashboard } from './pages/dashboard.page';
 import { renderAnalytics } from './pages/analytics.page';
@@ -58,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 5. Registro de Service Worker para PWA Offline (Solo en producción)
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register('./sw.js')
         .then(reg => {
           console.log('Service Worker registrado correctamente con alcance:', reg.scope);
         })
