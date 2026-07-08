@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 
 let categoryChartInstance = null;
 let barChartInstance = null;
+let bucketChartInstance = null;
 
 /**
  * Renderiza la vista de Analíticas y Reportes.
@@ -23,6 +24,7 @@ export async function renderAnalytics(container) {
 
   try {
     const txs = await Queries.getTransactions();
+    const summary = await Queries.getFinancialSummary();
 
     container.innerHTML = `
       <div class="flex-column gap-lg">
@@ -44,7 +46,7 @@ export async function renderAnalytics(container) {
         </div>
 
         <!-- Graphs Grid -->
-        <div style="display: grid; grid-template-columns: 1fr; gap: 24px; @media (min-width: 992px) { grid-template-columns: 1fr 1fr; }">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
           
           <!-- Category Spending Card -->
           <div class="card flex-column gap-md">
@@ -53,6 +55,17 @@ export async function renderAnalytics(container) {
               <canvas id="category-chart"></canvas>
             </div>
             <div id="category-legend" class="flex-column gap-xs" style="max-height: 150px; overflow-y: auto;">
+              <!-- Leyenda inyectada dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Buckets (Apartados) Distribution Card -->
+          <div class="card flex-column gap-md">
+            <h2 class="text-title-large">Distribución por Apartados</h2>
+            <div id="bucket-chart-wrapper" style="position: relative; height: 260px; width: 100%;">
+              <canvas id="bucket-chart"></canvas>
+            </div>
+            <div id="bucket-legend" class="flex-column gap-xs" style="max-height: 150px; overflow-y: auto;">
               <!-- Leyenda inyectada dinámicamente -->
             </div>
           </div>
@@ -70,16 +83,24 @@ export async function renderAnalytics(container) {
 
         </div>
 
+        <!-- Detailed Breakdowns Card -->
+        <div class="card flex-column gap-md">
+          <h2 class="text-title-large">Desgloses Analíticos Detallados</h2>
+          <div id="detailed-breakdowns-area" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
       </div>
     `;
 
     const timeframeSelect = document.getElementById('analytics-timeframe');
     timeframeSelect.addEventListener('change', () => {
-      updateCharts(txs, timeframeSelect.value);
+      updateCharts(txs, timeframeSelect.value, summary);
     });
 
     // Cargar charts por primera vez
-    updateCharts(txs, timeframeSelect.value);
+    updateCharts(txs, timeframeSelect.value, summary);
 
   } catch (error) {
     console.error('Error al cargar analíticas:', error);
@@ -96,7 +117,7 @@ export async function renderAnalytics(container) {
 /**
  * Actualiza las gráficas basándose en el periodo seleccionado.
  */
-function updateCharts(transactions, timeframe) {
+function updateCharts(transactions, timeframe, summary) {
   let startDate, endDate;
   const today = dayjs();
 
@@ -126,6 +147,12 @@ function updateCharts(transactions, timeframe) {
   // 2. Ingresos vs Gastos
   const comparisonData = AnalyticsEngine.getIncomeVsExpense(transactions, startDate, endDate);
   renderComparisonChart(comparisonData, timeframe);
+
+  // 3. Distribución en Apartados
+  renderBucketChart(summary.buckets);
+
+  // 4. Desgloses analíticos detallados
+  renderDetailedBreakdowns(transactions, startDate, endDate, summary);
 }
 
 /**
@@ -289,6 +316,179 @@ function renderComparisonChart(data, timeframe) {
       </div>
       <div class="text-body-small" style="color: var(--md-sys-color-outline); margin-top: 4px; text-align: center;">
         Tasa de Ahorro: ${data.savingsRate.toFixed(1)}% (${actionText})
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Gráfico de Dona para apartados.
+ */
+function renderBucketChart(buckets) {
+  const wrapper = document.getElementById('bucket-chart-wrapper');
+  const legendArea = document.getElementById('bucket-legend');
+  if (!wrapper || !legendArea) return;
+
+  if (bucketChartInstance) {
+    bucketChartInstance.destroy();
+    bucketChartInstance = null;
+  }
+
+  const bucketData = buckets.filter(b => b.balance > 0);
+
+  if (bucketData.length === 0) {
+    legendArea.innerHTML = '';
+    wrapper.innerHTML = `
+      <div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
+        <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">pie_chart</span>
+        <p class="text-body-medium" style="margin: 0; max-width: 250px;">No hay saldos acumulados en tus apartados actualmente.</p>
+        <button id="go-to-buckets-btn" class="btn btn-outlined btn-small mt-sm">Ir a Apartados</button>
+      </div>
+    `;
+    wrapper.querySelector('#go-to-buckets-btn')?.addEventListener('click', () => {
+      window.location.hash = '#/buckets';
+    });
+    return;
+  }
+
+  wrapper.innerHTML = '<canvas id="bucket-chart"></canvas>';
+  const ctx = document.getElementById('bucket-chart');
+
+  const labels = bucketData.map(item => item.name);
+  const amounts = bucketData.map(item => item.balance);
+
+  const palette = [
+    '#006c47', '#0288d1', '#ed6c02', '#ba1a1a', '#9c27b0', 
+    '#673ab7', '#3d6373', '#e91e63', '#ffeb3b', '#4caf50'
+  ];
+
+  bucketChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: amounts,
+        backgroundColor: palette.slice(0, bucketData.length),
+        borderWidth: 2,
+        borderColor: 'var(--md-sys-color-surface)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  const totalReserved = bucketData.reduce((sum, b) => sum + b.balance, 0);
+  legendArea.innerHTML = bucketData.map((item, idx) => {
+    const col = palette[idx % palette.length];
+    const pct = totalReserved > 0 ? (item.balance / totalReserved) * 100 : 0;
+    return `
+      <div class="flex-row justify-between align-center" style="font-size: 0.875rem; padding: 4px 0;">
+        <div class="flex-row align-center gap-sm">
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${col};"></span>
+          <span>${item.name}</span>
+        </div>
+        <strong>$${item.balance.toLocaleString()} (${pct.toFixed(1)}%)</strong>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Renderiza los desgloses tabulares de analíticas avanzadas.
+ */
+function renderDetailedBreakdowns(transactions, startDate, endDate, summary) {
+  const area = document.getElementById('detailed-breakdowns-area');
+  if (!area) return;
+
+  // Filtrar transacciones del periodo
+  const periodTxs = transactions.filter(t => t.date >= startDate && t.date <= endDate);
+
+  // A. Top Categorías de Gasto
+  const expenses = periodTxs.filter(t => t.type === 'expense');
+  const catMap = {};
+  expenses.forEach(e => {
+    catMap[e.category] = (catMap[e.category] || 0) + e.amount;
+  });
+  const topCategories = Object.entries(catMap)
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3);
+
+  // B. Top Movimientos (Gastos e Ingresos más grandes)
+  const topMovements = [...periodTxs]
+    .filter(t => t.type === 'expense' || t.type === 'income')
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3);
+
+  // C. Distribución Patrimonial
+  const totalAssets = summary.assets.reduce((sum, a) => sum + a.balance, 0);
+  const liquidPct = totalAssets > 0 ? ((summary.liquidity / totalAssets) * 100).toFixed(1) : 0;
+  const otherPct = (100 - parseFloat(liquidPct)).toFixed(1);
+
+  area.innerHTML = `
+    <!-- Col 1: Top Categorías -->
+    <div class="flex-column gap-sm">
+      <h3 class="text-title-small" style="color: var(--md-sys-color-primary);">Top Categorías de Gasto</h3>
+      <div class="flex-column gap-xs">
+        ${topCategories.length === 0 
+          ? '<span class="text-body-medium" style="color: var(--md-sys-color-outline);">Sin gastos en este periodo</span>'
+          : topCategories.map((c, i) => `
+              <div class="flex-row justify-between align-center" style="padding: 4px 0;">
+                <span class="text-body-medium">${i + 1}. ${c.category}</span>
+                <strong class="text-body-medium" style="color: var(--color-expense);">$${c.amount.toLocaleString()}</strong>
+              </div>
+            `).join('')}
+      </div>
+    </div>
+
+    <!-- Col 2: Movimientos Mayores -->
+    <div class="flex-column gap-sm">
+      <h3 class="text-title-small" style="color: var(--md-sys-color-primary);">Movimientos más Grandes</h3>
+      <div class="flex-column gap-xs">
+        ${topMovements.length === 0 
+          ? '<span class="text-body-medium" style="color: var(--md-sys-color-outline);">Sin movimientos registrados</span>'
+          : topMovements.map(m => {
+              const sign = m.type === 'income' ? '+' : '-';
+              const col = m.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)';
+              return `
+                <div class="flex-column" style="padding: 4px 0; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+                  <div class="flex-row justify-between">
+                    <span class="text-body-medium" style="font-weight: 500;">${m.category}</span>
+                    <strong class="text-body-medium" style="color: ${col};">${sign}$${m.amount.toLocaleString()}</strong>
+                  </div>
+                  <span class="text-body-small" style="color: var(--md-sys-color-outline); margin-top: 2px;">${m.description || 'Sin descripción'} (${m.date})</span>
+                </div>
+              `;
+            }).join('')}
+      </div>
+    </div>
+
+    <!-- Col 3: Distribución Patrimonial -->
+    <div class="flex-column gap-sm">
+      <h3 class="text-title-small" style="color: var(--md-sys-color-primary);">Distribución Patrimonial</h3>
+      <div class="flex-column gap-xs">
+        <div class="flex-row justify-between text-body-medium">
+          <span>Activos Líquidos:</span>
+          <strong>$${summary.liquidity.toLocaleString()} (${liquidPct}%)</strong>
+        </div>
+        <div class="flex-row justify-between text-body-medium">
+          <span>Inversiones y Otros:</span>
+          <strong>$${(totalAssets - summary.liquidity).toLocaleString()} (${otherPct}%)</strong>
+        </div>
+        <hr style="border: 0; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 4px 0;" />
+        <div class="flex-row justify-between text-body-medium">
+          <span>Dinero Reservado:</span>
+          <strong style="color: var(--md-sys-color-primary);">$${summary.reserved.toLocaleString()}</strong>
+        </div>
+        <div class="flex-row justify-between text-body-medium">
+          <span>Dinero Libre (Disponible):</span>
+          <strong style="color: var(--color-income);">$${summary.available.toLocaleString()}</strong>
+        </div>
       </div>
     </div>
   `;

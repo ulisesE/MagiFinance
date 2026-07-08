@@ -777,11 +777,11 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Registrar</button>
       </div>
     </form>
-  `;A.open(a,e=>{let t=e.querySelector(`#tx-type`),r=e.querySelector(`#tx-asset`),i=e.querySelector(`#tx-dest-asset`),a=e.querySelector(`#bucket-group`),o=e.querySelector(`#tx-bucket`),s=e.querySelector(`#dest-bucket-group`),c=e.querySelector(`#tx-dest-bucket`),l=e.querySelector(`#dest-asset-group`),u=e.querySelector(`#debt-group`),d=e.querySelector(`#cancel-tx-btn`),f=e.querySelector(`#new-tx-form`),p=()=>{let e=r.value,t=n.filter(t=>t.assetId===e);t.length>0?(a.style.display=`flex`,o.innerHTML=`<option value="">Ninguno (Saldo general de la cuenta)</option>`+t.map(e=>`<option value="${e.id}">${e.name}</option>`).join(``)):(a.style.display=`none`,o.value=``)},m=()=>{let e=t.value===`transfer`,r=i.value,a=n.filter(e=>e.assetId===r);e&&a.length>0?(s.style.display=`flex`,c.innerHTML=`<option value="">Ninguno (Saldo general de la cuenta)</option>`+a.map(e=>`<option value="${e.id}">${e.name}</option>`).join(``)):(s.style.display=`none`,c.value=``)};t.addEventListener(`change`,()=>{let e=t.value;l.style.display=e===`transfer`?`flex`:`none`,u.style.display=e===`debt_payment`?`flex`:`none`,m()}),r.addEventListener(`change`,p),i.addEventListener(`change`,m),p(),m(),d.addEventListener(`click`,()=>A.close()),f.addEventListener(`submit`,async n=>{n.preventDefault();let a={date:e.querySelector(`#tx-date`).value,type:t.value,assetId:r.value,amount:parseFloat(e.querySelector(`#tx-amount`).value),category:e.querySelector(`#tx-category`).value.trim(),description:e.querySelector(`#tx-desc`).value.trim()},s=o.value;if(s&&(a.bucketId=s),a.type===`transfer`){a.destinationAssetId=i.value;let e=c.value;e&&(a.destinationBucketId=e)}a.type===`debt_payment`&&(a.debtId=e.querySelector(`#tx-debt`).value||null),await k.addTransaction(a),j.success(`¡Movimiento registrado con éxito!`),A.close()})})}var wu=null,Tu=null;async function Eu(e){e.innerHTML=`
+  `;A.open(a,e=>{let t=e.querySelector(`#tx-type`),r=e.querySelector(`#tx-asset`),i=e.querySelector(`#tx-dest-asset`),a=e.querySelector(`#bucket-group`),o=e.querySelector(`#tx-bucket`),s=e.querySelector(`#dest-bucket-group`),c=e.querySelector(`#tx-dest-bucket`),l=e.querySelector(`#dest-asset-group`),u=e.querySelector(`#debt-group`),d=e.querySelector(`#cancel-tx-btn`),f=e.querySelector(`#new-tx-form`),p=()=>{let e=r.value,t=n.filter(t=>t.assetId===e);t.length>0?(a.style.display=`flex`,o.innerHTML=`<option value="">Ninguno (Saldo general de la cuenta)</option>`+t.map(e=>`<option value="${e.id}">${e.name}</option>`).join(``)):(a.style.display=`none`,o.value=``)},m=()=>{let e=t.value===`transfer`,r=i.value,a=n.filter(e=>e.assetId===r);e&&a.length>0?(s.style.display=`flex`,c.innerHTML=`<option value="">Ninguno (Saldo general de la cuenta)</option>`+a.map(e=>`<option value="${e.id}">${e.name}</option>`).join(``)):(s.style.display=`none`,c.value=``)};t.addEventListener(`change`,()=>{let e=t.value;l.style.display=e===`transfer`?`flex`:`none`,u.style.display=e===`debt_payment`?`flex`:`none`,m()}),r.addEventListener(`change`,p),i.addEventListener(`change`,m),p(),m(),d.addEventListener(`click`,()=>A.close()),f.addEventListener(`submit`,async n=>{n.preventDefault();let a={date:e.querySelector(`#tx-date`).value,type:t.value,assetId:r.value,amount:parseFloat(e.querySelector(`#tx-amount`).value),category:e.querySelector(`#tx-category`).value.trim(),description:e.querySelector(`#tx-desc`).value.trim()},s=o.value;if(s&&(a.bucketId=s),a.type===`transfer`){a.destinationAssetId=i.value;let e=c.value;e&&(a.destinationBucketId=e)}a.type===`debt_payment`&&(a.debtId=e.querySelector(`#tx-debt`).value||null),await k.addTransaction(a),j.success(`¡Movimiento registrado con éxito!`),A.close()})})}var wu=null,Tu=null,Eu=null;async function Du(e){e.innerHTML=`
     <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
       <div class="text-title-medium" style="color: var(--md-sys-color-primary);">Calculando reportes y distribuciones...</div>
     </div>
-  `;try{let t=await k.getTransactions();e.innerHTML=`
+  `;try{let t=await k.getTransactions(),n=await k.getFinancialSummary();e.innerHTML=`
       <div class="flex-column gap-lg">
         
         <!-- Header & Filter -->
@@ -801,7 +801,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         </div>
 
         <!-- Graphs Grid -->
-        <div style="display: grid; grid-template-columns: 1fr; gap: 24px; @media (min-width: 992px) { grid-template-columns: 1fr 1fr; }">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
           
           <!-- Category Spending Card -->
           <div class="card flex-column gap-md">
@@ -810,6 +810,17 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
               <canvas id="category-chart"></canvas>
             </div>
             <div id="category-legend" class="flex-column gap-xs" style="max-height: 150px; overflow-y: auto;">
+              <!-- Leyenda inyectada dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Buckets (Apartados) Distribution Card -->
+          <div class="card flex-column gap-md">
+            <h2 class="text-title-large">Distribución por Apartados</h2>
+            <div id="bucket-chart-wrapper" style="position: relative; height: 260px; width: 100%;">
+              <canvas id="bucket-chart"></canvas>
+            </div>
+            <div id="bucket-legend" class="flex-column gap-xs" style="max-height: 150px; overflow-y: auto;">
               <!-- Leyenda inyectada dinámicamente -->
             </div>
           </div>
@@ -827,14 +838,22 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
 
         </div>
 
+        <!-- Detailed Breakdowns Card -->
+        <div class="card flex-column gap-md">
+          <h2 class="text-title-large">Desgloses Analíticos Detallados</h2>
+          <div id="detailed-breakdowns-area" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+
       </div>
-    `;let n=document.getElementById(`analytics-timeframe`);n.addEventListener(`change`,()=>{Du(t,n.value)}),Du(t,n.value)}catch(t){console.error(`Error al cargar analíticas:`,t),e.innerHTML=`
+    `;let r=document.getElementById(`analytics-timeframe`);r.addEventListener(`change`,()=>{Ou(t,r.value,n)}),Ou(t,r.value,n)}catch(t){console.error(`Error al cargar analíticas:`,t),e.innerHTML=`
       <div class="card flex-column align-center gap-md">
         <span class="icon" style="color: var(--md-sys-color-error); font-size: 48px;">error</span>
         <h2>Error al generar analíticas</h2>
         <p>${t.message}</p>
       </div>
-    `}}function Du(e,t){let n,r,i=(0,E.default)();switch(t){case`current-month`:n=i.startOf(`month`).format(`YYYY-MM-DD`),r=i.endOf(`month`).format(`YYYY-MM-DD`);break;case`last-month`:n=i.subtract(1,`month`).startOf(`month`).format(`YYYY-MM-DD`),r=i.subtract(1,`month`).endOf(`month`).format(`YYYY-MM-DD`);break;case`last-3-months`:n=i.subtract(2,`month`).startOf(`month`).format(`YYYY-MM-DD`),r=i.endOf(`month`).format(`YYYY-MM-DD`);break;case`last-6-months`:n=i.subtract(5,`month`).startOf(`month`).format(`YYYY-MM-DD`),r=i.endOf(`month`).format(`YYYY-MM-DD`);break}Ou(D.getSpendingByCategory(e,n,r)),ku(D.getIncomeVsExpense(e,n,r),t)}function Ou(e){let t=document.getElementById(`category-chart-wrapper`),n=document.getElementById(`category-legend`);if(!t||!n)return;if(wu&&=(wu.destroy(),null),e.length===0){n.innerHTML=``,t.innerHTML=`
+    `}}function Ou(e,t,n){let r,i,a=(0,E.default)();switch(t){case`current-month`:r=a.startOf(`month`).format(`YYYY-MM-DD`),i=a.endOf(`month`).format(`YYYY-MM-DD`);break;case`last-month`:r=a.subtract(1,`month`).startOf(`month`).format(`YYYY-MM-DD`),i=a.subtract(1,`month`).endOf(`month`).format(`YYYY-MM-DD`);break;case`last-3-months`:r=a.subtract(2,`month`).startOf(`month`).format(`YYYY-MM-DD`),i=a.endOf(`month`).format(`YYYY-MM-DD`);break;case`last-6-months`:r=a.subtract(5,`month`).startOf(`month`).format(`YYYY-MM-DD`),i=a.endOf(`month`).format(`YYYY-MM-DD`);break}ku(D.getSpendingByCategory(e,r,i)),Au(D.getIncomeVsExpense(e,r,i),t),ju(n.buckets),Mu(e,r,i,n)}function ku(e){let t=document.getElementById(`category-chart-wrapper`),n=document.getElementById(`category-legend`);if(!t||!n)return;if(wu&&=(wu.destroy(),null),e.length===0){n.innerHTML=``,t.innerHTML=`
       <div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
         <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">pie_chart</span>
         <p class="text-body-medium" style="margin: 0;">No hay gastos registrados en este periodo.</p>
@@ -847,7 +866,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         </div>
         <strong>$${e.amount.toLocaleString()} (${e.percentage.toFixed(1)}%)</strong>
       </div>
-    `).join(``)}function ku(e,t){let n=document.getElementById(`bar-chart-wrapper`),r=document.getElementById(`savings-summary-area`);if(!n||!r)return;if(Tu&&=(Tu.destroy(),null),!(e.income>0||e.expense>0)){n.innerHTML=`
+    `).join(``)}function Au(e,t){let n=document.getElementById(`bar-chart-wrapper`),r=document.getElementById(`savings-summary-area`);if(!n||!r)return;if(Tu&&=(Tu.destroy(),null),!(e.income>0||e.expense>0)){n.innerHTML=`
       <div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
         <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">bar_chart</span>
         <p class="text-body-medium" style="margin: 0;">No hay ingresos ni egresos en este periodo.</p>
@@ -875,7 +894,74 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         Tasa de Ahorro: ${e.savingsRate.toFixed(1)}% (${a})
       </div>
     </div>
-  `}async function Au(e){let t=async()=>{let n=await k.getDebtsWithProgress(),r=n.filter(e=>!e.isPaid).reduce((e,t)=>e+t.remainingAmount,0),i=te.getPaymentPriority(n);e.innerHTML=`
+  `}function ju(e){let t=document.getElementById(`bucket-chart-wrapper`),n=document.getElementById(`bucket-legend`);if(!t||!n)return;Eu&&=(Eu.destroy(),null);let r=e.filter(e=>e.balance>0);if(r.length===0){n.innerHTML=``,t.innerHTML=`
+      <div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
+        <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">pie_chart</span>
+        <p class="text-body-medium" style="margin: 0; max-width: 250px;">No hay saldos acumulados en tus apartados actualmente.</p>
+        <button id="go-to-buckets-btn" class="btn btn-outlined btn-small mt-sm">Ir a Apartados</button>
+      </div>
+    `,t.querySelector(`#go-to-buckets-btn`)?.addEventListener(`click`,()=>{window.location.hash=`#/buckets`});return}t.innerHTML=`<canvas id="bucket-chart"></canvas>`;let i=document.getElementById(`bucket-chart`),a=r.map(e=>e.name),o=r.map(e=>e.balance),s=[`#006c47`,`#0288d1`,`#ed6c02`,`#ba1a1a`,`#9c27b0`,`#673ab7`,`#3d6373`,`#e91e63`,`#ffeb3b`,`#4caf50`];Eu=new bu(i,{type:`doughnut`,data:{labels:a,datasets:[{data:o,backgroundColor:s.slice(0,r.length),borderWidth:2,borderColor:`var(--md-sys-color-surface)`}]},options:{responsive:!0,maintainAspectRatio:!1,plugins:{legend:{display:!1}}}});let c=r.reduce((e,t)=>e+t.balance,0);n.innerHTML=r.map((e,t)=>{let n=s[t%s.length],r=c>0?e.balance/c*100:0;return`
+      <div class="flex-row justify-between align-center" style="font-size: 0.875rem; padding: 4px 0;">
+        <div class="flex-row align-center gap-sm">
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${n};"></span>
+          <span>${e.name}</span>
+        </div>
+        <strong>$${e.balance.toLocaleString()} (${r.toFixed(1)}%)</strong>
+      </div>
+    `}).join(``)}function Mu(e,t,n,r){let i=document.getElementById(`detailed-breakdowns-area`);if(!i)return;let a=e.filter(e=>e.date>=t&&e.date<=n),o=a.filter(e=>e.type===`expense`),s={};o.forEach(e=>{s[e.category]=(s[e.category]||0)+e.amount});let c=Object.entries(s).map(([e,t])=>({category:e,amount:t})).sort((e,t)=>t.amount-e.amount).slice(0,3),l=[...a].filter(e=>e.type===`expense`||e.type===`income`).sort((e,t)=>t.amount-e.amount).slice(0,3),u=r.assets.reduce((e,t)=>e+t.balance,0),d=u>0?(r.liquidity/u*100).toFixed(1):0,f=(100-parseFloat(d)).toFixed(1);i.innerHTML=`
+    <!-- Col 1: Top Categorías -->
+    <div class="flex-column gap-sm">
+      <h3 class="text-title-small" style="color: var(--md-sys-color-primary);">Top Categorías de Gasto</h3>
+      <div class="flex-column gap-xs">
+        ${c.length===0?`<span class="text-body-medium" style="color: var(--md-sys-color-outline);">Sin gastos en este periodo</span>`:c.map((e,t)=>`
+              <div class="flex-row justify-between align-center" style="padding: 4px 0;">
+                <span class="text-body-medium">${t+1}. ${e.category}</span>
+                <strong class="text-body-medium" style="color: var(--color-expense);">$${e.amount.toLocaleString()}</strong>
+              </div>
+            `).join(``)}
+      </div>
+    </div>
+
+    <!-- Col 2: Movimientos Mayores -->
+    <div class="flex-column gap-sm">
+      <h3 class="text-title-small" style="color: var(--md-sys-color-primary);">Movimientos más Grandes</h3>
+      <div class="flex-column gap-xs">
+        ${l.length===0?`<span class="text-body-medium" style="color: var(--md-sys-color-outline);">Sin movimientos registrados</span>`:l.map(e=>{let t=e.type===`income`?`+`:`-`,n=e.type===`income`?`var(--color-income)`:`var(--color-expense)`;return`
+                <div class="flex-column" style="padding: 4px 0; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+                  <div class="flex-row justify-between">
+                    <span class="text-body-medium" style="font-weight: 500;">${e.category}</span>
+                    <strong class="text-body-medium" style="color: ${n};">${t}$${e.amount.toLocaleString()}</strong>
+                  </div>
+                  <span class="text-body-small" style="color: var(--md-sys-color-outline); margin-top: 2px;">${e.description||`Sin descripción`} (${e.date})</span>
+                </div>
+              `}).join(``)}
+      </div>
+    </div>
+
+    <!-- Col 3: Distribución Patrimonial -->
+    <div class="flex-column gap-sm">
+      <h3 class="text-title-small" style="color: var(--md-sys-color-primary);">Distribución Patrimonial</h3>
+      <div class="flex-column gap-xs">
+        <div class="flex-row justify-between text-body-medium">
+          <span>Activos Líquidos:</span>
+          <strong>$${r.liquidity.toLocaleString()} (${d}%)</strong>
+        </div>
+        <div class="flex-row justify-between text-body-medium">
+          <span>Inversiones y Otros:</span>
+          <strong>$${(u-r.liquidity).toLocaleString()} (${f}%)</strong>
+        </div>
+        <hr style="border: 0; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 4px 0;" />
+        <div class="flex-row justify-between text-body-medium">
+          <span>Dinero Reservado:</span>
+          <strong style="color: var(--md-sys-color-primary);">$${r.reserved.toLocaleString()}</strong>
+        </div>
+        <div class="flex-row justify-between text-body-medium">
+          <span>Dinero Libre (Disponible):</span>
+          <strong style="color: var(--color-income);">$${r.available.toLocaleString()}</strong>
+        </div>
+      </div>
+    </div>
+  `}async function Nu(e){let t=async()=>{let n=await k.getDebtsWithProgress(),r=n.filter(e=>!e.isPaid).reduce((e,t)=>e+t.remainingAmount,0),i=te.getPaymentPriority(n);e.innerHTML=`
       <div class="flex-column gap-lg">
         
         <!-- Header & Action -->
@@ -979,7 +1065,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         `:``}
 
       </div>
-    `,document.getElementById(`add-debt-btn`).addEventListener(`click`,()=>{ju(t)}),e.querySelectorAll(`.edit-debt-btn`).forEach(e=>{e.addEventListener(`click`,e=>{let n=e.target.dataset.id;Mu(n,t)})}),e.querySelectorAll(`.delete-debt-btn`).forEach(e=>{e.addEventListener(`click`,async e=>{let n=e.target.dataset.id;confirm(`¿Estás seguro de eliminar esta deuda? Se conservarán los movimientos de pago asociados.`)&&(await k.deleteDebt(n),j.info(`Deuda eliminada.`),t())})})};await t()}function ju(e){A.open(`
+    `,document.getElementById(`add-debt-btn`).addEventListener(`click`,()=>{Pu(t)}),e.querySelectorAll(`.edit-debt-btn`).forEach(e=>{e.addEventListener(`click`,e=>{let n=e.target.dataset.id;Fu(n,t)})}),e.querySelectorAll(`.delete-debt-btn`).forEach(e=>{e.addEventListener(`click`,async e=>{let n=e.target.dataset.id;confirm(`¿Estás seguro de eliminar esta deuda? Se conservarán los movimientos de pago asociados.`)&&(await k.deleteDebt(n),j.info(`Deuda eliminada.`),t())})})};await t()}function Pu(e){A.open(`
     <h2 class="text-title-large">Registrar Deuda</h2>
     <form id="add-debt-form" class="flex-column gap-md mt-sm">
       <div class="form-group">
@@ -1012,7 +1098,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Registrar Deuda</button>
       </div>
     </form>
-  `,t=>{let n=t.querySelector(`#add-debt-form`);t.querySelector(`#cancel-debt-btn`).addEventListener(`click`,()=>A.close()),n.addEventListener(`submit`,async n=>{n.preventDefault();let r={id:t.querySelector(`#debt-id`).value.trim().toLowerCase().replace(/[^a-z0-9-_]/g,``),name:t.querySelector(`#debt-name`).value.trim(),amount:parseFloat(t.querySelector(`#debt-amount`).value),originalAmount:parseFloat(t.querySelector(`#debt-original`).value)||parseFloat(t.querySelector(`#debt-amount`).value),status:`active`,notes:t.querySelector(`#debt-notes`).value.trim(),startDate:(0,E.default)().format(`YYYY-MM-DD`)};if(r.id){if((await k.getDebtsWithProgress()).some(e=>e.id===r.id)){alert(`Este ID de deuda ya está registrado.`);return}await k.addDebt(r),await k.addAsset({id:r.id,name:`Pasivo: ${r.name}`,type:`liability_debt`,isActive:!0}),j.success(`¡Deuda "${r.name}" registrada con éxito!`),A.close(),e()}})})}async function Mu(e,t){let n=await w.debts.get(e);if(!n)return;let r=`
+  `,t=>{let n=t.querySelector(`#add-debt-form`);t.querySelector(`#cancel-debt-btn`).addEventListener(`click`,()=>A.close()),n.addEventListener(`submit`,async n=>{n.preventDefault();let r={id:t.querySelector(`#debt-id`).value.trim().toLowerCase().replace(/[^a-z0-9-_]/g,``),name:t.querySelector(`#debt-name`).value.trim(),amount:parseFloat(t.querySelector(`#debt-amount`).value),originalAmount:parseFloat(t.querySelector(`#debt-original`).value)||parseFloat(t.querySelector(`#debt-amount`).value),status:`active`,notes:t.querySelector(`#debt-notes`).value.trim(),startDate:(0,E.default)().format(`YYYY-MM-DD`)};if(r.id){if((await k.getDebtsWithProgress()).some(e=>e.id===r.id)){alert(`Este ID de deuda ya está registrado.`);return}await k.addDebt(r),await k.addAsset({id:r.id,name:`Pasivo: ${r.name}`,type:`liability_debt`,isActive:!0}),j.success(`¡Deuda "${r.name}" registrada con éxito!`),A.close(),e()}})})}async function Fu(e,t){let n=await w.debts.get(e);if(!n)return;let r=`
     <h2 class="text-title-large">Editar Deuda</h2>
     <form id="edit-debt-form" class="flex-column gap-md mt-sm">
       <div class="form-group">
@@ -1048,7 +1134,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
       </div>
     </form>
-  `;A.open(r,n=>{let r=n.querySelector(`#edit-debt-form`);n.querySelector(`#cancel-edit-debt`).addEventListener(`click`,()=>A.close()),r.addEventListener(`submit`,async r=>{r.preventDefault();let i={name:n.querySelector(`#debt-name`).value.trim(),amount:parseFloat(n.querySelector(`#debt-amount`).value),originalAmount:parseFloat(n.querySelector(`#debt-original`).value),status:n.querySelector(`#debt-status`).value,notes:n.querySelector(`#debt-notes`).value.trim()};await k.editDebt(e,i),j.success(`¡Cambios de deuda guardados!`),A.close(),t()})})}async function Nu(e){let t=async()=>{let n=await k.getGoalsWithProgress();e.innerHTML=`
+  `;A.open(r,n=>{let r=n.querySelector(`#edit-debt-form`);n.querySelector(`#cancel-edit-debt`).addEventListener(`click`,()=>A.close()),r.addEventListener(`submit`,async r=>{r.preventDefault();let i={name:n.querySelector(`#debt-name`).value.trim(),amount:parseFloat(n.querySelector(`#debt-amount`).value),originalAmount:parseFloat(n.querySelector(`#debt-original`).value),status:n.querySelector(`#debt-status`).value,notes:n.querySelector(`#debt-notes`).value.trim()};await k.editDebt(e,i),j.success(`¡Cambios de deuda guardados!`),A.close(),t()})})}async function Iu(e){let t=async()=>{let n=await k.getGoalsWithProgress();e.innerHTML=`
       <div class="flex-column gap-lg">
         
         <!-- Header & Action -->
@@ -1108,7 +1194,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         </div>
 
       </div>
-    `,document.getElementById(`add-goal-btn`).addEventListener(`click`,()=>{Pu(t)}),e.querySelectorAll(`.edit-goal-btn`).forEach(e=>{e.addEventListener(`click`,e=>{let n=e.target.dataset.id;Fu(n,t)})}),e.querySelectorAll(`.delete-goal-btn`).forEach(e=>{e.addEventListener(`click`,async e=>{let n=e.target.dataset.id;confirm(`¿Estás seguro de eliminar esta meta?`)&&(await k.deleteGoal(n),j.info(`Meta de ahorro eliminada.`),t())})})};await t()}function Pu(e){let t=`
+    `,document.getElementById(`add-goal-btn`).addEventListener(`click`,()=>{Lu(t)}),e.querySelectorAll(`.edit-goal-btn`).forEach(e=>{e.addEventListener(`click`,e=>{let n=e.target.dataset.id;Ru(n,t)})}),e.querySelectorAll(`.delete-goal-btn`).forEach(e=>{e.addEventListener(`click`,async e=>{let n=e.target.dataset.id;confirm(`¿Estás seguro de eliminar esta meta?`)&&(await k.deleteGoal(n),j.info(`Meta de ahorro eliminada.`),t())})})};await t()}function Lu(e){let t=`
     <h2 class="text-title-large">Crear Meta de Ahorro</h2>
     <form id="add-goal-form" class="flex-column gap-md mt-sm">
       <div class="form-group">
@@ -1141,7 +1227,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Crear Meta</button>
       </div>
     </form>
-  `;A.open(t,t=>{let n=t.querySelector(`#add-goal-form`);t.querySelector(`#cancel-goal-btn`).addEventListener(`click`,()=>A.close()),n.addEventListener(`submit`,async n=>{n.preventDefault();let r={id:t.querySelector(`#goal-id`).value.trim().toLowerCase().replace(/[^a-z0-9-_]/g,``),name:t.querySelector(`#goal-name`).value.trim(),targetAmount:parseFloat(t.querySelector(`#goal-target`).value),currentAmount:parseFloat(t.querySelector(`#goal-current`).value),targetDate:t.querySelector(`#goal-date`).value};if(r.id){if((await k.getGoalsWithProgress()).some(e=>e.id===r.id)){alert(`Este ID de meta ya está registrado.`);return}await k.addGoal(r),j.success(`¡Meta "${r.name}" creada con éxito!`),A.close(),e()}})})}async function Fu(e,t){let n=await w.goals.get(e);if(!n)return;let r=`
+  `;A.open(t,t=>{let n=t.querySelector(`#add-goal-form`);t.querySelector(`#cancel-goal-btn`).addEventListener(`click`,()=>A.close()),n.addEventListener(`submit`,async n=>{n.preventDefault();let r={id:t.querySelector(`#goal-id`).value.trim().toLowerCase().replace(/[^a-z0-9-_]/g,``),name:t.querySelector(`#goal-name`).value.trim(),targetAmount:parseFloat(t.querySelector(`#goal-target`).value),currentAmount:parseFloat(t.querySelector(`#goal-current`).value),targetDate:t.querySelector(`#goal-date`).value};if(r.id){if((await k.getGoalsWithProgress()).some(e=>e.id===r.id)){alert(`Este ID de meta ya está registrado.`);return}await k.addGoal(r),j.success(`¡Meta "${r.name}" creada con éxito!`),A.close(),e()}})})}async function Ru(e,t){let n=await w.goals.get(e);if(!n)return;let r=`
     <h2 class="text-title-large">Editar Meta</h2>
     <form id="edit-goal-form" class="flex-column gap-md mt-sm">
       <div class="form-group">
@@ -1169,7 +1255,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
       </div>
     </form>
-  `;A.open(r,n=>{let r=n.querySelector(`#edit-goal-form`);n.querySelector(`#cancel-edit-goal`).addEventListener(`click`,()=>A.close()),r.addEventListener(`submit`,async r=>{r.preventDefault();let i={name:n.querySelector(`#goal-name`).value.trim(),targetAmount:parseFloat(n.querySelector(`#goal-target`).value),currentAmount:parseFloat(n.querySelector(`#goal-current`).value),targetDate:n.querySelector(`#goal-date`).value};await k.editGoal(e,i),j.success(`¡Meta de ahorro actualizada!`),A.close(),t()})})}async function Iu(e){let t=await k.getSetting(`theme`)||`dark`;(()=>{e.innerHTML=`
+  `;A.open(r,n=>{let r=n.querySelector(`#edit-goal-form`);n.querySelector(`#cancel-edit-goal`).addEventListener(`click`,()=>A.close()),r.addEventListener(`submit`,async r=>{r.preventDefault();let i={name:n.querySelector(`#goal-name`).value.trim(),targetAmount:parseFloat(n.querySelector(`#goal-target`).value),currentAmount:parseFloat(n.querySelector(`#goal-current`).value),targetDate:n.querySelector(`#goal-date`).value};await k.editGoal(e,i),j.success(`¡Meta de ahorro actualizada!`),A.close(),t()})})}async function zu(e){let t=await k.getSetting(`theme`)||`dark`;(()=>{e.innerHTML=`
       <div class="flex-column gap-lg">
         
         <!-- Header -->
@@ -1248,7 +1334,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         </div>
 
       </div>
-    `;let n=document.getElementById(`setting-theme-select`);n.addEventListener(`change`,async()=>{let e=n.value;await k.setSetting(`theme`,e),e===`dark`?(document.body.classList.add(`dark-theme`),document.body.classList.remove(`light-theme`),document.getElementById(`theme-color-meta`).setAttribute(`content`,`#0f1210`)):(document.body.classList.add(`light-theme`),document.body.classList.remove(`dark-theme`),document.getElementById(`theme-color-meta`).setAttribute(`content`,`#006c47`))}),document.getElementById(`export-backup-btn`).addEventListener(`click`,async()=>{await Lu()});let r=document.getElementById(`backup-file-picker`);document.getElementById(`trigger-import-backup-btn`).addEventListener(`click`,()=>{r.click()}),r.addEventListener(`change`,async e=>{let t=e.target.files[0];if(!t||!confirm(`¿Estás seguro de restaurar este respaldo? Se sobrescribirá TODA tu información actual.`))return;let n=new FileReader;n.onload=async e=>{try{let t=JSON.parse(e.target.result);if(t.schema!==`MFP-Backup-v1`){alert(`Formato de respaldo no reconocido. Debe ser un archivo "MFP-Backup-v1".`);return}await Ru(t.data),alert(`Base de datos restaurada correctamente.`),window.location.hash=`#/dashboard`}catch(e){alert(`Error al procesar el respaldo: ${e.message}`)}},n.readAsText(t)}),document.getElementById(`clear-database-btn`).addEventListener(`click`,async()=>{confirm(`¿Confirmas que deseas eliminar todos tus datos financieros de forma permanente? No se puede deshacer.`)&&confirm(`Por seguridad física: ¿Estás ABSOLUTAMENTE seguro de borrar la contabilidad? Tu saldo de activos, deudas y metas volverá a cero.`)&&(await zu(),alert(`Contabilidad vaciada. La página se recargará.`),window.location.reload())})})()}async function Lu(){try{let e=await w.snapshots.toArray(),t=await w.transactions.toArray(),n=await w.assets.toArray(),r=await w.debts.toArray(),i=await w.goals.toArray(),a=await w.settings.toArray(),o=JSON.stringify({schema:`MFP-Backup-v1`,timestamp:Date.now(),data:{snapshots:e,transactions:t,assets:n,debts:r,goals:i,settings:a}},null,2),s=new Blob([o],{type:`application/json`}),c=URL.createObjectURL(s),l=document.createElement(`a`);l.href=c,l.download=`MFP_Backup_${(0,E.default)().format(`YYYY-MM-DD_HHmmss`)}.json`,document.body.appendChild(l),l.click(),document.body.removeChild(l),URL.revokeObjectURL(c),j.success(`¡Respaldo descargado correctamente!`)}catch(e){alert(`Error al exportar respaldo: ${e.message}`)}}async function Ru(e){await w.transaction(`rw`,[w.snapshots,w.transactions,w.assets,w.debts,w.goals,w.settings],async()=>{await w.snapshots.clear(),await w.transactions.clear(),await w.assets.clear(),await w.debts.clear(),await w.goals.clear(),await w.settings.clear(),e.snapshots&&await w.snapshots.bulkAdd(e.snapshots),e.transactions&&await w.transactions.bulkAdd(e.transactions),e.assets&&await w.assets.bulkAdd(e.assets),e.debts&&await w.debts.bulkAdd(e.debts),e.goals&&await w.goals.bulkAdd(e.goals),e.settings&&await w.settings.bulkAdd(e.settings)}),O.emit(`data:changed`),j.success(`¡Respaldo restaurado con éxito!`)}async function zu(){await w.transaction(`rw`,[w.snapshots,w.transactions,w.assets,w.debts,w.goals,w.settings],async()=>{await w.snapshots.clear(),await w.transactions.clear(),await w.assets.clear(),await w.debts.clear(),await w.goals.clear(),await w.settings.clear()}),w.settings.bulkAdd([{key:`theme`,value:`dark`},{key:`currency`,value:`MXN`},{key:`initializedAt`,value:Date.now()}]),w.assets.bulkAdd([{id:`bbva`,name:`BBVA Nómina`,type:`liquid`,isActive:!0},{id:`nu`,name:`Nu Cajita`,type:`savings`,isActive:!0},{id:`efectivo`,name:`Efectivo Wallet`,type:`liquid`,isActive:!0}])}async function Bu(e){let t=async()=>{let n=await k.getFinancialSummary(),r=n.assets,i=n.buckets,a=new Map;r.forEach(e=>{a.set(e.id,{...e,buckets:[]})}),i.forEach(e=>{let t=a.get(e.assetId);t&&t.buckets.push(e)});let o=Array.from(a.values());e.innerHTML=`
+    `;let n=document.getElementById(`setting-theme-select`);n.addEventListener(`change`,async()=>{let e=n.value;await k.setSetting(`theme`,e),e===`dark`?(document.body.classList.add(`dark-theme`),document.body.classList.remove(`light-theme`),document.getElementById(`theme-color-meta`).setAttribute(`content`,`#0f1210`)):(document.body.classList.add(`light-theme`),document.body.classList.remove(`dark-theme`),document.getElementById(`theme-color-meta`).setAttribute(`content`,`#006c47`))}),document.getElementById(`export-backup-btn`).addEventListener(`click`,async()=>{await Bu()});let r=document.getElementById(`backup-file-picker`);document.getElementById(`trigger-import-backup-btn`).addEventListener(`click`,()=>{r.click()}),r.addEventListener(`change`,async e=>{let t=e.target.files[0];if(!t||!confirm(`¿Estás seguro de restaurar este respaldo? Se sobrescribirá TODA tu información actual.`))return;let n=new FileReader;n.onload=async e=>{try{let t=JSON.parse(e.target.result);if(t.schema!==`MFP-Backup-v1`){alert(`Formato de respaldo no reconocido. Debe ser un archivo "MFP-Backup-v1".`);return}await Vu(t.data),alert(`Base de datos restaurada correctamente.`),window.location.hash=`#/dashboard`}catch(e){alert(`Error al procesar el respaldo: ${e.message}`)}},n.readAsText(t)}),document.getElementById(`clear-database-btn`).addEventListener(`click`,async()=>{confirm(`¿Confirmas que deseas eliminar todos tus datos financieros de forma permanente? No se puede deshacer.`)&&confirm(`Por seguridad física: ¿Estás ABSOLUTAMENTE seguro de borrar la contabilidad? Tu saldo de activos, deudas y metas volverá a cero.`)&&(await Hu(),alert(`Contabilidad vaciada. La página se recargará.`),window.location.reload())})})()}async function Bu(){try{let e=await w.snapshots.toArray(),t=await w.transactions.toArray(),n=await w.assets.toArray(),r=await w.debts.toArray(),i=await w.goals.toArray(),a=await w.settings.toArray(),o=JSON.stringify({schema:`MFP-Backup-v1`,timestamp:Date.now(),data:{snapshots:e,transactions:t,assets:n,debts:r,goals:i,settings:a}},null,2),s=new Blob([o],{type:`application/json`}),c=URL.createObjectURL(s),l=document.createElement(`a`);l.href=c,l.download=`MFP_Backup_${(0,E.default)().format(`YYYY-MM-DD_HHmmss`)}.json`,document.body.appendChild(l),l.click(),document.body.removeChild(l),URL.revokeObjectURL(c),j.success(`¡Respaldo descargado correctamente!`)}catch(e){alert(`Error al exportar respaldo: ${e.message}`)}}async function Vu(e){await w.transaction(`rw`,[w.snapshots,w.transactions,w.assets,w.debts,w.goals,w.settings],async()=>{await w.snapshots.clear(),await w.transactions.clear(),await w.assets.clear(),await w.debts.clear(),await w.goals.clear(),await w.settings.clear(),e.snapshots&&await w.snapshots.bulkAdd(e.snapshots),e.transactions&&await w.transactions.bulkAdd(e.transactions),e.assets&&await w.assets.bulkAdd(e.assets),e.debts&&await w.debts.bulkAdd(e.debts),e.goals&&await w.goals.bulkAdd(e.goals),e.settings&&await w.settings.bulkAdd(e.settings)}),O.emit(`data:changed`),j.success(`¡Respaldo restaurado con éxito!`)}async function Hu(){await w.transaction(`rw`,[w.snapshots,w.transactions,w.assets,w.debts,w.goals,w.settings],async()=>{await w.snapshots.clear(),await w.transactions.clear(),await w.assets.clear(),await w.debts.clear(),await w.goals.clear(),await w.settings.clear()}),w.settings.bulkAdd([{key:`theme`,value:`dark`},{key:`currency`,value:`MXN`},{key:`initializedAt`,value:Date.now()}]),w.assets.bulkAdd([{id:`bbva`,name:`BBVA Nómina`,type:`liquid`,isActive:!0},{id:`nu`,name:`Nu Cajita`,type:`savings`,isActive:!0},{id:`efectivo`,name:`Efectivo Wallet`,type:`liquid`,isActive:!0}])}async function Uu(e){let t=async()=>{let n=await k.getFinancialSummary(),r=n.assets,i=n.buckets,a=new Map;r.forEach(e=>{a.set(e.id,{...e,buckets:[]})}),i.forEach(e=>{let t=a.get(e.assetId);t&&t.buckets.push(e)});let o=Array.from(a.values());e.innerHTML=`
       <div class="flex-column gap-lg">
         
         <!-- Header & Action -->
@@ -1315,7 +1401,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         </div>
 
       </div>
-    `,document.getElementById(`add-bucket-btn`).addEventListener(`click`,()=>{Vu(t)}),e.querySelectorAll(`.edit-bucket-btn`).forEach(e=>{e.addEventListener(`click`,e=>{let n=e.currentTarget.dataset.id;Hu(n,t)})}),e.querySelectorAll(`.delete-bucket-btn`).forEach(e=>{e.addEventListener(`click`,async e=>{let n=e.currentTarget.dataset.id,r=await w.buckets.get(n);r&&confirm(`¿Estás seguro de eliminar el apartado "${r.name}"?`)&&(await k.deleteBucket(n),j.info(`Apartado "${r.name}" eliminado.`),t())})})};await t()}async function Vu(e){let t=(await k.getAssets()).filter(e=>!e.type.startsWith(`liability_`));if(t.length===0){alert(`Primero debes crear una cuenta física en Activos.`);return}let n=`
+    `,document.getElementById(`add-bucket-btn`).addEventListener(`click`,()=>{Wu(t)}),e.querySelectorAll(`.edit-bucket-btn`).forEach(e=>{e.addEventListener(`click`,e=>{let n=e.currentTarget.dataset.id;Gu(n,t)})}),e.querySelectorAll(`.delete-bucket-btn`).forEach(e=>{e.addEventListener(`click`,async e=>{let n=e.currentTarget.dataset.id,r=await w.buckets.get(n);r&&confirm(`¿Estás seguro de eliminar el apartado "${r.name}"?`)&&(await k.deleteBucket(n),j.info(`Apartado "${r.name}" eliminado.`),t())})})};await t()}async function Wu(e){let t=(await k.getAssets()).filter(e=>!e.type.startsWith(`liability_`));if(t.length===0){alert(`Primero debes crear una cuenta física en Activos.`);return}let n=`
     <h2 class="text-title-large">Crear Nuevo Apartado</h2>
     <form id="add-bucket-form" class="flex-column gap-md mt-sm">
       <div class="form-group">
@@ -1340,7 +1426,7 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Crear Apartado</button>
       </div>
     </form>
-  `;A.open(n,t=>{let n=t.querySelector(`#add-bucket-form`);t.querySelector(`#cancel-bucket-btn`).addEventListener(`click`,()=>A.close()),n.addEventListener(`submit`,async n=>{n.preventDefault();let r={id:t.querySelector(`#bucket-id`).value.trim().toLowerCase().replace(/[^a-z0-9-_]/g,``),name:t.querySelector(`#bucket-name`).value.trim(),assetId:t.querySelector(`#bucket-asset`).value,balance:0};if(!r.id){alert(`ID de apartado inválido.`);return}if((await k.getBuckets()).some(e=>e.id===r.id)){alert(`Este ID de apartado ya está registrado.`);return}await k.addBucket(r),j.success(`Apartado "${r.name}" creado con éxito.`),A.close(),e()})})}async function Hu(e,t){let n=await w.buckets.get(e);if(!n)return;let r=`
+  `;A.open(n,t=>{let n=t.querySelector(`#add-bucket-form`);t.querySelector(`#cancel-bucket-btn`).addEventListener(`click`,()=>A.close()),n.addEventListener(`submit`,async n=>{n.preventDefault();let r={id:t.querySelector(`#bucket-id`).value.trim().toLowerCase().replace(/[^a-z0-9-_]/g,``),name:t.querySelector(`#bucket-name`).value.trim(),assetId:t.querySelector(`#bucket-asset`).value,balance:0};if(!r.id){alert(`ID de apartado inválido.`);return}if((await k.getBuckets()).some(e=>e.id===r.id)){alert(`Este ID de apartado ya está registrado.`);return}await k.addBucket(r),j.success(`Apartado "${r.name}" creado con éxito.`),A.close(),e()})})}async function Gu(e,t){let n=await w.buckets.get(e);if(!n)return;let r=`
     <h2 class="text-title-large">Editar Apartado</h2>
     <form id="edit-bucket-form" class="flex-column gap-md mt-sm">
       <div class="form-group">
@@ -1353,5 +1439,5 @@ var e=Object.create,t=Object.defineProperty,n=Object.getOwnPropertyDescriptor,r=
         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
       </div>
     </form>
-  `;A.open(r,n=>{let r=n.querySelector(`#edit-bucket-form`);n.querySelector(`#cancel-edit-bucket`).addEventListener(`click`,()=>A.close()),r.addEventListener(`submit`,async r=>{r.preventDefault();let i={name:n.querySelector(`#bucket-name`).value.trim()};await k.editBucket(e,i),j.success(`Cambios guardados con éxito.`),A.close(),t()})})}var Uu={"/dashboard":xu,"/analytics":Eu,"/transactions":le,"/assets":oe,"/buckets":Bu,"/debts":Au,"/goals":Nu,"/settings":Iu};document.addEventListener(`DOMContentLoaded`,async()=>{let e=new l(Uu,`main-content`),t=await k.getSetting(`theme`)||`dark`;Wu(t);let n=document.getElementById(`theme-toggle`);n&&(Gu(n,t),n.addEventListener(`click`,async()=>{let e=(document.body.classList.contains(`dark-theme`)?`dark`:`light`)==`dark`?`light`:`dark`;await k.setSetting(`theme`,e),Wu(e),Gu(n,e)})),O.subscribe(`data:changed`,()=>{console.log(`Se detectaron cambios en la base de datos local. Refrescando vista activa...`),e.handleRoute()}),`serviceWorker`in navigator&&window.addEventListener(`load`,()=>{navigator.serviceWorker.register(`./sw.js`).then(e=>{console.log(`Service Worker registrado correctamente con alcance:`,e.scope)}).catch(e=>{console.error(`Error al registrar Service Worker:`,e)})})});function Wu(e){e===`dark`?(document.body.classList.add(`dark-theme`),document.body.classList.remove(`light-theme`),document.getElementById(`theme-color-meta`)?.setAttribute(`content`,`#0f1210`)):(document.body.classList.add(`light-theme`),document.body.classList.remove(`dark-theme`),document.getElementById(`theme-color-meta`)?.setAttribute(`content`,`#006c47`))}function Gu(e,t){let n=e.querySelector(`.icon`);n&&(n.textContent=t===`dark`?`light_mode`:`dark_mode`)}
-//# sourceMappingURL=index-Cf9kFDvw.js.map
+  `;A.open(r,n=>{let r=n.querySelector(`#edit-bucket-form`);n.querySelector(`#cancel-edit-bucket`).addEventListener(`click`,()=>A.close()),r.addEventListener(`submit`,async r=>{r.preventDefault();let i={name:n.querySelector(`#bucket-name`).value.trim()};await k.editBucket(e,i),j.success(`Cambios guardados con éxito.`),A.close(),t()})})}var Ku={"/dashboard":xu,"/analytics":Du,"/transactions":le,"/assets":oe,"/buckets":Uu,"/debts":Nu,"/goals":Iu,"/settings":zu};document.addEventListener(`DOMContentLoaded`,async()=>{let e=new l(Ku,`main-content`),t=await k.getSetting(`theme`)||`dark`;qu(t);let n=document.getElementById(`theme-toggle`);n&&(Ju(n,t),n.addEventListener(`click`,async()=>{let e=(document.body.classList.contains(`dark-theme`)?`dark`:`light`)==`dark`?`light`:`dark`;await k.setSetting(`theme`,e),qu(e),Ju(n,e)})),O.subscribe(`data:changed`,()=>{console.log(`Se detectaron cambios en la base de datos local. Refrescando vista activa...`),e.handleRoute()}),`serviceWorker`in navigator&&window.addEventListener(`load`,()=>{navigator.serviceWorker.register(`./sw.js`).then(e=>{console.log(`Service Worker registrado correctamente con alcance:`,e.scope)}).catch(e=>{console.error(`Error al registrar Service Worker:`,e)})})});function qu(e){e===`dark`?(document.body.classList.add(`dark-theme`),document.body.classList.remove(`light-theme`),document.getElementById(`theme-color-meta`)?.setAttribute(`content`,`#0f1210`)):(document.body.classList.add(`light-theme`),document.body.classList.remove(`dark-theme`),document.getElementById(`theme-color-meta`)?.setAttribute(`content`,`#006c47`))}function Ju(e,t){let n=e.querySelector(`.icon`);n&&(n.textContent=t===`dark`?`light_mode`:`dark_mode`)}
+//# sourceMappingURL=index-BPK_ybp3.js.map
