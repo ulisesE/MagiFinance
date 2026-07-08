@@ -61,6 +61,7 @@ export const Queries = {
    */
   async getAssetsWithBalances(targetDate = dayjs().format('YYYY-MM-DD')) {
     const assets = await db.assets.toArray();
+    const buckets = await db.buckets.toArray();
     const dbSnapshots = await db.snapshots.toArray();
     const snapshots = dbSnapshots.map(s => ({
       ...s,
@@ -68,7 +69,84 @@ export const Queries = {
     }));
     const transactions = await db.transactions.toArray();
 
-    return BalanceEngine.calculateState(assets, snapshots, transactions, targetDate);
+    return BalanceEngine.calculateState(assets, buckets, snapshots, transactions, targetDate);
+  },
+
+  /**
+   * Obtiene el payload unificado de información financiera.
+   * @param {string} [targetDate] Fecha límite.
+   */
+  async getFinancialSummary(targetDate = dayjs().format('YYYY-MM-DD')) {
+    const assets = await db.assets.toArray();
+    const buckets = await db.buckets.toArray();
+    const dbSnapshots = await db.snapshots.toArray();
+    const snapshots = dbSnapshots.map(s => ({
+      ...s,
+      ...s.rawJson
+    }));
+    const transactions = await db.transactions.toArray();
+
+    const engineState = BalanceEngine.calculateState(assets, buckets, snapshots, transactions, targetDate);
+
+    // Obtener metas y deudas con progreso
+    const goals = await this.getGoalsWithProgress();
+    const debts = await this.getDebtsWithProgress();
+
+    // Filtrar activos reales y pasivos
+    const realAssets = engineState.assets.filter(a => !a.type.startsWith('liability_'));
+    const liabilities = engineState.assets.filter(a => a.type.startsWith('liability_'));
+
+    // Calcular fondo de emergencia
+    const emergencyFundGoal = goals.find(g => g.name.toLowerCase().includes('emergencia') || g.id === 'emergencia');
+    const emergencyFund = emergencyFundGoal ? emergencyFundGoal.currentAmount : 0;
+
+    return {
+      assets: realAssets,
+      buckets: engineState.buckets,
+      liabilities,
+      netWorth: engineState.netWorth,
+      liquidity: engineState.liquidity,
+      reserved: engineState.reserved,
+      available: engineState.available,
+      goals,
+      debts,
+      emergencyFund
+    };
+  },
+
+  /**
+   * Obtiene todos los apartados registrados.
+   */
+  async getBuckets() {
+    return db.buckets.toArray();
+  },
+
+  /**
+   * Agrega un nuevo apartado con validación de activo origen.
+   */
+  async addBucket(bucket) {
+    const asset = await db.assets.get(bucket.assetId);
+    if (!asset) {
+      throw new Error(`El activo origen "${bucket.assetId}" no existe.`);
+    }
+    await db.buckets.add(bucket);
+    EventBus.emit('data:changed');
+  },
+
+  /**
+   * Edita un apartado.
+   */
+  async editBucket(id, updatedBucket) {
+    await db.buckets.update(id, updatedBucket);
+    EventBus.emit('data:changed');
+  },
+
+  /**
+   * Elimina un apartado.
+   */
+  async deleteBucket(id) {
+    await db.buckets.delete(id);
+    EventBus.emit('data:changed');
   },
 
   /**
