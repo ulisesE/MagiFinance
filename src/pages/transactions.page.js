@@ -222,7 +222,7 @@ export async function renderTransactions(container) {
 /**
  * Abre el diálogo de importación inteligente.
  */
-function openImportDialog(onSuccess) {
+export function openImportDialog(onSuccess) {
   const dialogHtml = `
     <h2 class="text-title-large">Importar Archivo Financiero</h2>
     <p class="text-body-small" style="color: var(--md-sys-color-outline);">

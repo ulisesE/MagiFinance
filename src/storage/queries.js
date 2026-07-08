@@ -281,6 +281,27 @@ export const Queries = {
    * Importa transacciones MFP-Events-v1.
    */
   async importTransactions(eventsData) {
+    // Autoprovisionar activos referenciados si no existen en la BD
+    const uniqueAssetIds = new Set();
+    eventsData.events.forEach(ev => {
+      if (ev.assetId) uniqueAssetIds.add(ev.assetId);
+      if (ev.destinationAssetId) uniqueAssetIds.add(ev.destinationAssetId);
+    });
+
+    for (const assetId of uniqueAssetIds) {
+      const exists = await db.assets.get(assetId);
+      if (!exists) {
+        // Intentar deducir un tipo inteligente por su ID (ej: tdc, crédito)
+        const isLiability = assetId.includes('credit') || assetId.includes('tdc') || assetId.includes('deuda') || assetId.includes('loan');
+        await db.assets.add({
+          id: assetId,
+          name: assetId.charAt(0).toUpperCase() + assetId.slice(1).replace(/[-_]/g, ' '),
+          type: isLiability ? 'liability_credit' : 'liquid',
+          isActive: true
+        });
+      }
+    }
+
     const txsToInsert = eventsData.events.map(ev => ({
       ...ev,
       createdAt: Date.now()

@@ -4,6 +4,8 @@
 
 import { Queries } from '../storage/queries';
 import { DialogManager } from '../utils/dialog';
+import { openImportDialog } from './transactions.page';
+import { openAddAssetDialog } from './assets.page';
 import Chart from 'chart.js/auto';
 import dayjs from 'dayjs';
 
@@ -21,6 +23,81 @@ export async function renderDashboard(container) {
   try {
     const data = await Queries.getDashboardData();
     const { state, previousNetWorth, currentMonthStats, insights, history } = data;
+
+    // Verificar si la base de datos está vacía (onboarding)
+    if (!state.assets || state.assets.length === 0) {
+      container.innerHTML = `
+        <div class="flex-column gap-xl align-center" style="max-width: 680px; margin: 40px auto; text-align: center; padding: 0 16px;">
+          
+          <!-- Welcome header -->
+          <div class="flex-column align-center gap-sm">
+            <div style="background: linear-gradient(135deg, var(--md-sys-color-primary-container), rgba(0, 108, 71, 0.2)); padding: 20px; border-radius: 50%; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; border: 1px solid var(--md-sys-color-primary);">
+              <span class="icon" style="font-size: 40px; color: var(--md-sys-color-primary);">wallet</span>
+            </div>
+            <h1 class="text-display-small" style="font-weight: 800; background: linear-gradient(120deg, var(--md-sys-color-primary), #72daa7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Bienvenido a MagiFinance</h1>
+            <p class="text-body-large" style="color: var(--md-sys-color-on-surface-variant); max-width: 520px; line-height: 1.6;">
+              Tu libro contable y patrimonio personal 100% local y privado. Para comenzar, carga tu primer snapshot financiero o crea tus activos manualmente.
+            </p>
+          </div>
+
+          <!-- Onboarding Path Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; width: 100%; margin-top: 16px;">
+            
+            <!-- Card 1: Import Snapshot (Vibrant, primary onboarding path) -->
+            <div id="onboarding-import-card" class="card card-glass flex-column justify-between align-center gap-md" style="padding: 32px 24px; border: 2px solid var(--md-sys-color-primary); cursor: pointer; border-radius: var(--border-radius-xl); text-align: center; min-height: 280px;">
+              <div class="flex-column align-center gap-xs">
+                <span class="icon" style="font-size: 40px; color: var(--md-sys-color-primary);">upload_file</span>
+                <h2 class="text-title-large" style="font-weight: 700;">Importar Snapshot</h2>
+                <p class="text-body-small" style="color: var(--md-sys-color-on-surface-variant); line-height: 1.5;">
+                  ¿Tienes un estado de cuenta o balance JSON en formato <code>MFP-Snapshot-v1</code> generado por ChatGPT? Impórtalo para autoprovisionar todo al instante.
+                </p>
+              </div>
+              <button class="btn btn-primary" style="width: 100%;">Cargar Archivo JSON</button>
+            </div>
+
+            <!-- Card 2: Manual Config -->
+            <div id="onboarding-manual-card" class="card flex-column justify-between align-center gap-md" style="padding: 32px 24px; cursor: pointer; border-radius: var(--border-radius-xl); text-align: center; min-height: 280px;">
+              <div class="flex-column align-center gap-xs">
+                <span class="icon" style="font-size: 40px; color: var(--md-sys-color-outline);">account_balance_wallet</span>
+                <h2 class="text-title-large" style="font-weight: 700;">Crear Activo Manual</h2>
+                <p class="text-body-small" style="color: var(--md-sys-color-on-surface-variant); line-height: 1.5;">
+                  Registra tus cuentas (efectivo, corriente, tarjetas o deudas) de forma individual para empezar a ingresar tus transacciones desde cero.
+                </p>
+              </div>
+              <button class="btn btn-outlined" style="width: 100%;">Agregar Cuenta</button>
+            </div>
+
+          </div>
+
+          <!-- Prompt Blueprint info -->
+          <div class="card flex-column gap-sm" style="width: 100%; text-align: left; background-color: var(--md-sys-color-surface-variant); border-radius: var(--border-radius-lg); margin-top: 16px;">
+            <div class="flex-row gap-sm align-center">
+              <span class="icon" style="color: var(--md-sys-color-primary);">info</span>
+              <h3 class="text-title-small" style="color: var(--md-sys-color-primary); font-weight: 600;">¿Cómo estructurar tus datos con ChatGPT?</h3>
+            </div>
+            <p class="text-body-small" style="color: var(--md-sys-color-on-surface-variant); line-height: 1.6; margin: 0;">
+              Puedes pedirle a ChatGPT: <em>"Genera un archivo JSON de MagiFinance usando el esquema de contrato de instantánea <code>MFP-Snapshot-v1</code> con la fecha de hoy, incluyendo mis cuentas BBVA ($12,000) y Efectivo ($1,500)"</em>. Al cargarlo, creará las cuentas y registrará los saldos iniciales automáticamente.
+            </p>
+          </div>
+
+        </div>
+      `;
+
+      // Eventos del onboarding
+      document.getElementById('onboarding-import-card').addEventListener('click', () => {
+        openImportDialog(async () => {
+          await renderDashboard(container);
+        });
+      });
+
+      document.getElementById('onboarding-manual-card').addEventListener('click', () => {
+        openAddAssetDialog(async () => {
+          await renderDashboard(container);
+        });
+      });
+
+      return;
+    }
 
     // Calcular variación
     const nwVariation = state.netWorth - previousNetWorth;
@@ -50,6 +127,9 @@ export async function renderDashboard(container) {
             </div>
           </div>
           <div class="flex-row gap-sm">
+            <button id="quick-import-json" class="btn btn-outlined">
+              <span class="icon">upload_file</span> Importar JSON
+            </button>
             <button id="quick-add-tx" class="btn btn-primary">
               <span class="icon">add</span> Nuevo Movimiento
             </button>
@@ -162,10 +242,19 @@ export async function renderDashboard(container) {
       </div>
     `;
 
-    // Hook up button
+    // Hook up buttons
     document.getElementById('quick-add-tx').addEventListener('click', () => {
       openNewTransactionDialog();
     });
+    
+    const quickImportBtn = document.getElementById('quick-import-json');
+    if (quickImportBtn) {
+      quickImportBtn.addEventListener('click', () => {
+        openImportDialog(async () => {
+          await renderDashboard(container);
+        });
+      });
+    }
 
     // Renderizar gráfico
     renderChart(history);

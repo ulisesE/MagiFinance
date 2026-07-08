@@ -107,7 +107,7 @@ export async function renderAssets(container) {
 /**
  * Diálogo para agregar un nuevo activo.
  */
-function openAddAssetDialog(onSuccess) {
+export function openAddAssetDialog(onSuccess) {
   const dialogHtml = `
     <h2 class="text-title-large">Agregar Cuenta o Activo</h2>
     <form id="add-asset-form" class="flex-column gap-md mt-sm">

@@ -1,0 +1,60 @@
+{
+  "schema": "MFP-Snapshot-v1",
+  "timestamp": 1783468800,
+  "date": "2026-07-08",
+  "assets": [
+    {
+      "id": "bbva-apartados",
+      "name": "BBVA Apartados",
+      "type": "savings",
+      "balance": 2784.26
+    },
+    {
+      "id": "cash-wallet",
+      "name": "Efectivo Cartera",
+      "type": "liquid",
+      "balance": 700.00
+    },
+    {
+      "id": "cash-reserved",
+      "name": "Efectivo Reservado",
+      "type": "liquid",
+      "balance": 3000.00
+    },
+    {
+      "id": "bbva-credit",
+      "name": "Tarjeta BBVA",
+      "type": "liability_credit",
+      "balance": -19020.87
+    }
+  ],
+  "debts": [
+    {
+      "id": "bbva-payroll-loan",
+      "name": "Crédito de Nómina BBVA",
+      "amount": 0
+    },
+    {
+      "id": "audio-equipment",
+      "name": "Bajo + Mezcladora",
+      "amount": 2000
+    }
+  ],
+  "goals": [
+    {
+      "id": "general-savings",
+      "name": "Ahorro General",
+      "targetAmount": 10000
+    },
+    {
+      "id": "emergency-fund",
+      "name": "Fondo de Emergencia",
+      "targetAmount": 10000
+    },
+    {
+      "id": "future-goals",
+      "name": "Metas",
+      "targetAmount": 5000
+    }
+  ]
+}
