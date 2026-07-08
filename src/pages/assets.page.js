@@ -5,6 +5,7 @@
 import { Queries } from '../storage/queries';
 import { DialogManager } from '../utils/dialog';
 import { db } from '../storage/db';
+import { Toast } from '../utils/toast';
 
 /**
  * Renderiza la vista de Activos.
@@ -168,6 +169,7 @@ export function openAddAssetDialog(onSuccess) {
       }
 
       await Queries.addAsset(newAsset);
+      Toast.success(`¡Cuenta "${newAsset.name}" agregada con éxito!`);
       DialogManager.close();
       onSuccess();
     });
@@ -229,6 +231,7 @@ async function openEditAssetDialog(id, onSuccess) {
       };
 
       await Queries.editAsset(id, updatedAsset);
+      Toast.success('¡Cambios de cuenta guardados!');
       DialogManager.close();
       onSuccess();
     });

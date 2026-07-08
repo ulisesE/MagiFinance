@@ -6,6 +6,8 @@ import { Queries } from '../storage/queries';
 import { JsonEngine } from '../engine/json.engine';
 import { DialogManager } from '../utils/dialog';
 import { db } from '../storage/db';
+import { openAddAssetDialog } from './assets.page';
+import { Toast } from '../utils/toast';
 import dayjs from 'dayjs';
 
 /**
@@ -348,8 +350,10 @@ export function openImportDialog(onSuccess) {
 
       if (importType === 'snapshot') {
         await Queries.importSnapshot(parsedPayload);
+        Toast.success('¡Instantánea (Snapshot) importada correctamente!');
       } else if (importType === 'events') {
         await Queries.importTransactions(parsedPayload);
+        Toast.success('¡Historial de transacciones importado correctamente!');
       }
 
       DialogManager.close();
@@ -368,6 +372,36 @@ async function requireDbSnapshots() {
  */
 async function openAddManualDialog(onSuccess) {
   const assets = await Queries.getAssets();
+  
+  if (assets.length === 0) {
+    const emptyDialogHtml = `
+      <h2 class="text-title-large">Registrar Movimiento</h2>
+      <div class="flex-column align-center gap-md mt-md" style="text-align: center; padding: 16px 8px;">
+        <div style="background: rgba(0, 108, 71, 0.1); padding: 16px; border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--md-sys-color-primary);">
+          <span class="icon" style="font-size: 32px; color: var(--md-sys-color-primary);">account_balance_wallet</span>
+        </div>
+        <p class="text-body-medium" style="color: var(--md-sys-color-on-surface-variant); line-height: 1.5; margin: 0;">
+          No tienes cuentas configuradas aún. Para poder registrar movimientos, primero debes crear al menos un activo (cuenta corriente, efectivo, etc.).
+        </p>
+        <div class="flex-row gap-sm justify-between w-full mt-sm">
+          <button type="button" class="btn btn-outlined" id="empty-cancel-btn" style="flex: 1;">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="empty-create-asset-btn" style="flex: 1;">Crear Cuenta</button>
+        </div>
+      </div>
+    `;
+
+    DialogManager.open(emptyDialogHtml, (modal) => {
+      modal.querySelector('#empty-cancel-btn').addEventListener('click', () => DialogManager.close());
+      modal.querySelector('#empty-create-asset-btn').addEventListener('click', () => {
+        DialogManager.close();
+        openAddAssetDialog(() => {
+          openAddManualDialog(onSuccess);
+        });
+      });
+    });
+    return;
+  }
+
   const debts = await Queries.getDebtsWithProgress();
 
   const optionsHtml = assets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');

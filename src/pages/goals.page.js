@@ -5,6 +5,7 @@
 import { Queries } from '../storage/queries';
 import { DialogManager } from '../utils/dialog';
 import { db } from '../storage/db';
+import { Toast } from '../utils/toast';
 import dayjs from 'dayjs';
 
 /**
@@ -107,6 +108,7 @@ export async function renderGoals(container) {
         const id = e.target.dataset.id;
         if (confirm('¿Estás seguro de eliminar esta meta?')) {
           await Queries.deleteGoal(id);
+          Toast.info('Meta de ahorro eliminada.');
           renderContent();
         }
       });
@@ -181,6 +183,7 @@ function openAddGoalDialog(onSuccess) {
       }
 
       await Queries.addGoal(newGoal);
+      Toast.success(`¡Meta "${newGoal.name}" creada con éxito!`);
       DialogManager.close();
       onSuccess();
     });
@@ -241,6 +244,7 @@ async function openEditGoalDialog(id, onSuccess) {
       };
 
       await Queries.editGoal(id, updatedGoal);
+      Toast.success('¡Meta de ahorro actualizada!');
       DialogManager.close();
       onSuccess();
     });

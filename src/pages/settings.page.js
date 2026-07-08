@@ -5,6 +5,7 @@
 import { Queries } from '../storage/queries';
 import { EventBus } from '../utils/event-bus';
 import { db } from '../storage/db';
+import { Toast } from '../utils/toast';
 import dayjs from 'dayjs';
 
 /**
@@ -207,6 +208,7 @@ async function exportDatabaseBackup() {
     
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    Toast.success('¡Respaldo descargado correctamente!');
   } catch (error) {
     alert(`Error al exportar respaldo: ${error.message}`);
   }
@@ -235,6 +237,7 @@ async function restoreDatabaseBackup(data) {
   });
 
   EventBus.emit('data:changed');
+  Toast.success('¡Respaldo restaurado con éxito!');
 }
 
 /**

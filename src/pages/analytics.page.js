@@ -49,7 +49,7 @@ export async function renderAnalytics(container) {
           <!-- Category Spending Card -->
           <div class="card flex-column gap-md">
             <h2 class="text-title-large">Gastos por Categoría</h2>
-            <div style="position: relative; height: 260px; width: 100%;">
+            <div id="category-chart-wrapper" style="position: relative; height: 260px; width: 100%;">
               <canvas id="category-chart"></canvas>
             </div>
             <div id="category-legend" class="flex-column gap-xs" style="max-height: 150px; overflow-y: auto;">
@@ -60,7 +60,7 @@ export async function renderAnalytics(container) {
           <!-- Income vs Expenses Card -->
           <div class="card flex-column gap-md">
             <h2 class="text-title-large">Comparativa Mensual</h2>
-            <div style="position: relative; height: 260px; width: 100%;">
+            <div id="bar-chart-wrapper" style="position: relative; height: 260px; width: 100%;">
               <canvas id="bar-chart"></canvas>
             </div>
             <div id="savings-summary-area" class="flex-column gap-sm">
@@ -132,20 +132,30 @@ function updateCharts(transactions, timeframe) {
  * Gráfico de Dona para categorías.
  */
 function renderCategoryChart(data) {
-  const ctx = document.getElementById('category-chart');
+  const wrapper = document.getElementById('category-chart-wrapper');
   const legendArea = document.getElementById('category-legend');
-  if (!ctx || !legendArea) return;
+  if (!wrapper || !legendArea) return;
 
   // Limpiar instancia anterior
   if (categoryChartInstance) {
     categoryChartInstance.destroy();
+    categoryChartInstance = null;
   }
 
   if (data.length === 0) {
-    legendArea.innerHTML = `<p class="text-body-medium" style="color: var(--md-sys-color-outline)">No hay gastos registrados en este periodo.</p>`;
-    // Poner un canvas vacío/placeholder
+    legendArea.innerHTML = '';
+    wrapper.innerHTML = `
+      <div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
+        <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">pie_chart</span>
+        <p class="text-body-medium" style="margin: 0;">No hay gastos registrados en este periodo.</p>
+      </div>
+    `;
     return;
   }
+
+  // Restaurar canvas
+  wrapper.innerHTML = '<canvas id="category-chart"></canvas>';
+  const ctx = document.getElementById('category-chart');
 
   const labels = data.map(item => item.category);
   const amounts = data.map(item => item.amount);
@@ -195,13 +205,35 @@ function renderCategoryChart(data) {
  * Gráfico de barras para comparar Ingresos y Egresos.
  */
 function renderComparisonChart(data, timeframe) {
-  const ctx = document.getElementById('bar-chart');
+  const wrapper = document.getElementById('bar-chart-wrapper');
   const summaryArea = document.getElementById('savings-summary-area');
-  if (!ctx || !summaryArea) return;
+  if (!wrapper || !summaryArea) return;
 
   if (barChartInstance) {
     barChartInstance.destroy();
+    barChartInstance = null;
   }
+
+  const hasData = data.income > 0 || data.expense > 0;
+
+  if (!hasData) {
+    wrapper.innerHTML = `
+      <div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
+        <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">bar_chart</span>
+        <p class="text-body-medium" style="margin: 0;">No hay ingresos ni egresos en este periodo.</p>
+      </div>
+    `;
+    summaryArea.innerHTML = `
+      <div style="padding: 12px; background-color: var(--md-sys-color-surface-variant); border-radius: var(--border-radius-md); text-align: center; color: var(--md-sys-color-outline); font-size: 0.875rem;">
+        Registra transacciones de ingresos o gastos para visualizar esta comparativa.
+      </div>
+    `;
+    return;
+  }
+
+  // Restaurar canvas
+  wrapper.innerHTML = '<canvas id="bar-chart"></canvas>';
+  const ctx = document.getElementById('bar-chart');
 
   barChartInstance = new Chart(ctx, {
     type: 'bar',

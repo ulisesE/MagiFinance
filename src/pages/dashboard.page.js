@@ -6,6 +6,8 @@ import { Queries } from '../storage/queries';
 import { DialogManager } from '../utils/dialog';
 import { openImportDialog } from './transactions.page';
 import { openAddAssetDialog } from './assets.page';
+import { db } from '../storage/db';
+import { Toast } from '../utils/toast';
 import Chart from 'chart.js/auto';
 import dayjs from 'dayjs';
 
@@ -23,6 +25,7 @@ export async function renderDashboard(container) {
   try {
     const data = await Queries.getDashboardData();
     const { state, previousNetWorth, currentMonthStats, insights, history } = data;
+    const snapshotsCount = await db.snapshots.count();
 
     // Verificar si la base de datos está vacía (onboarding)
     if (!state.assets || state.assets.length === 0) {
@@ -139,22 +142,22 @@ export async function renderDashboard(container) {
         <!-- KPIs Grid -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
           
-          <div class="card flex-column gap-xs">
+          <div id="kpi-assets" class="card flex-column gap-xs" style="cursor: pointer;">
             <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Activos Totales</span>
             <span class="text-headline-small" style="font-weight: 700; color: var(--color-income);">$${state.assetsTotal.toLocaleString()}</span>
           </div>
 
-          <div class="card flex-column gap-xs">
+          <div id="kpi-liabilities" class="card flex-column gap-xs" style="cursor: pointer;">
             <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Pasivos Totales</span>
             <span class="text-headline-small" style="font-weight: 700; color: var(--color-expense);">$${state.liabilitiesTotal.toLocaleString()}</span>
           </div>
 
-          <div class="card flex-column gap-xs">
+          <div id="kpi-liquidity" class="card flex-column gap-xs" style="cursor: pointer;">
             <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Liquidez Neta</span>
             <span class="text-headline-small" style="font-weight: 700; color: var(--md-sys-color-primary);">$${state.liquidNetWorth.toLocaleString()}</span>
           </div>
 
-          <div class="card flex-column gap-xs">
+          <div id="kpi-savings" class="card flex-column gap-xs" style="cursor: pointer;">
             <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Ahorro de este Mes</span>
             <span class="text-headline-small" style="font-weight: 700; color: var(--color-transfer);">$${currentMonthStats.netSavings.toLocaleString()}</span>
             <span class="text-label-small" style="color: var(--md-sys-color-outline);">${currentMonthStats.savingsRate.toFixed(1)}% tasa</span>
@@ -168,8 +171,16 @@ export async function renderDashboard(container) {
           <!-- Net Worth History Card -->
           <div class="card flex-column gap-md">
             <h2 class="text-title-large">Evolución de Patrimonio</h2>
-            <div style="position: relative; height: 260px; width: 100%;">
-              <canvas id="networth-chart"></canvas>
+            <div id="networth-chart-wrapper" style="position: relative; height: 260px; width: 100%;">
+              ${snapshotsCount < 2 
+                ? `<div class="flex-column align-center justify-center gap-xs" style="height: 100%; text-align: center; color: var(--md-sys-color-outline); padding: 20px 0;">
+                     <span class="icon" style="font-size: 48px; color: var(--md-sys-color-outline-variant);">timeline</span>
+                     <p class="text-body-medium" style="margin: 0; max-width: 280px; line-height: 1.4;">
+                       Se requieren al menos 2 snapshots en meses distintos para trazar la evolución de tu patrimonio.
+                     </p>
+                   </div>`
+                : `<canvas id="networth-chart"></canvas>`
+              }
             </div>
           </div>
 
@@ -255,6 +266,20 @@ export async function renderDashboard(container) {
         });
       });
     }
+
+    // Hook up KPI cards
+    document.getElementById('kpi-assets')?.addEventListener('click', () => {
+      window.location.hash = '#/assets';
+    });
+    document.getElementById('kpi-liabilities')?.addEventListener('click', () => {
+      window.location.hash = '#/debts';
+    });
+    document.getElementById('kpi-liquidity')?.addEventListener('click', () => {
+      window.location.hash = '#/assets';
+    });
+    document.getElementById('kpi-savings')?.addEventListener('click', () => {
+      window.location.hash = '#/analytics';
+    });
 
     // Renderizar gráfico
     renderChart(history);
@@ -345,6 +370,36 @@ function renderChart(history) {
  */
 async function openNewTransactionDialog() {
   const assets = await Queries.getAssets();
+  
+  if (assets.length === 0) {
+    const emptyDialogHtml = `
+      <h2 class="text-title-large">Registrar Movimiento</h2>
+      <div class="flex-column align-center gap-md mt-md" style="text-align: center; padding: 16px 8px;">
+        <div style="background: rgba(0, 108, 71, 0.1); padding: 16px; border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--md-sys-color-primary);">
+          <span class="icon" style="font-size: 32px; color: var(--md-sys-color-primary);">account_balance_wallet</span>
+        </div>
+        <p class="text-body-medium" style="color: var(--md-sys-color-on-surface-variant); line-height: 1.5; margin: 0;">
+          No tienes cuentas configuradas aún. Para poder registrar movimientos, primero debes crear al menos un activo (cuenta corriente, efectivo, etc.).
+        </p>
+        <div class="flex-row gap-sm justify-between w-full mt-sm">
+          <button type="button" class="btn btn-outlined" id="empty-cancel-btn" style="flex: 1;">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="empty-create-asset-btn" style="flex: 1;">Crear Cuenta</button>
+        </div>
+      </div>
+    `;
+
+    DialogManager.open(emptyDialogHtml, (modal) => {
+      modal.querySelector('#empty-cancel-btn').addEventListener('click', () => DialogManager.close());
+      modal.querySelector('#empty-create-asset-btn').addEventListener('click', () => {
+        DialogManager.close();
+        openAddAssetDialog(() => {
+          openNewTransactionDialog();
+        });
+      });
+    });
+    return;
+  }
+
   const debts = await Queries.getDebtsWithProgress();
 
   const optionsHtml = assets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
@@ -449,6 +504,7 @@ async function openNewTransactionDialog() {
       }
 
       await Queries.addTransaction(tx);
+      Toast.success('¡Movimiento registrado con éxito!');
       DialogManager.close();
     });
   });

@@ -6,6 +6,7 @@ import { Queries } from '../storage/queries';
 import { DialogManager } from '../utils/dialog';
 import { DebtEngine } from '../engine/debt.engine';
 import { db } from '../storage/db';
+import { Toast } from '../utils/toast';
 import dayjs from 'dayjs';
 
 /**
@@ -157,6 +158,7 @@ export async function renderDebts(container) {
         const id = e.target.dataset.id;
         if (confirm('¿Estás seguro de eliminar esta deuda? Se conservarán los movimientos de pago asociados.')) {
           await Queries.deleteDebt(id);
+          Toast.info('Deuda eliminada.');
           renderContent();
         }
       });
@@ -242,6 +244,7 @@ function openAddDebtDialog(onSuccess) {
         isActive: true
       });
 
+      Toast.success(`¡Deuda "${newDebt.name}" registrada con éxito!`);
       DialogManager.close();
       onSuccess();
     });
@@ -311,6 +314,7 @@ async function openEditDebtDialog(id, onSuccess) {
       };
 
       await Queries.editDebt(id, updatedDebt);
+      Toast.success('¡Cambios de deuda guardados!');
       DialogManager.close();
       onSuccess();
     });
