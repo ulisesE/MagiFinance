@@ -1,19 +1,19 @@
 # 💳 MagiFinance - Libro Contable & Patrimonio Personal Offline
 
-MagiFinance es una **Progressive Web App (PWA)** de finanzas personales diseñada para funcionar completamente de manera local y offline, sin necesidad de un backend. Utiliza **IndexedDB** a través de **Dexie.js** para la persistencia e implementa una arquitectura modular desacoplada de alto rendimiento basada en Javascript Vanilla.
+MagiFinance es una **Progressive Web App (PWA)** de finanzas personales diseñada para funcionar completamente de manera local y offline, sin necesidad de un servidor o backend. Utiliza **IndexedDB** a través de **Dexie.js** para la persistencia de datos y está estructurada bajo principios de arquitectura modular desacoplada en Vanilla JavaScript.
 
-El flujo de trabajo principal consiste en importar instantáneas de balance (Snapshots) y movimientos (Transacciones) generados por herramientas externas (como ChatGPT), combinándolos en tiempo real mediante un algoritmo **Checkpoint + Delta** para calcular tu patrimonio neto y ofrecer analíticas financieras y recomendaciones tácticas.
+El flujo de trabajo principal consiste en importar instantáneas de balance (Snapshots) y listas de movimientos (Transacciones) generados por herramientas externas (como ChatGPT), combinándolos en tiempo real mediante un algoritmo **Checkpoint + Delta** para calcular tu patrimonio neto, mostrar analíticas y ofrecer insights tácticos.
 
 ---
 
 ## 🚀 Características Clave
 
-* 📱 **PWA Completa & Offline First**: Instalable en dispositivos móviles y de escritorio. Funciona 100% offline gracias a una estrategia de cacheo en Service Worker.
-* 🔒 **Seguridad y Privacidad Absoluta**: Los datos financieros jamás salen de tu dispositivo. Todo permanece en el IndexedDB local de tu navegador.
-* ⚙️ **Arquitectura Modular Desacoplada (Engine-View-Storage)**: Las reglas matemáticas y heurísticas de negocio viven en un motor de JS puro (`src/engine/`), totalmente aislado de la persistencia y del DOM.
+* 📱 **PWA Completa & Offline First**: Instalable en dispositivos móviles y de escritorio. Funciona 100% offline gracias a la estrategia de caché del Service Worker.
+* 🔒 **Seguridad y Privacidad Absoluta**: Tus datos financieros jamás salen de tu dispositivo. Todo permanece en el IndexedDB local de tu navegador.
+* 🏁 **Onboarding Interactivo**: Pantalla de bienvenida diseñada para guiarte en tu primer inicio, con accesos directos para la carga de tus datos iniciales o la creación manual de cuentas.
+* 🤖 **Autoprovisionamiento Inteligente**: Al importar tus datos (Snapshots o Transacciones), el sistema registra y configura de forma automática las cuentas, activos, pasivos, deudas y metas asociados, eliminando la necesidad de crearlos previamente.
+* ⚙️ **Algoritmo Checkpoint + Delta**: Las reglas de cálculo y agregación matemática están desacopladas en el núcleo del sistema (`src/engine/`), lo que permite realizar proyecciones eficientes.
 * 📈 **Visualizaciones y Reportes**: Gráficos interactivos construidos con **Chart.js** para visualizar la evolución del patrimonio neto, la distribución de tus activos y los gastos por categoría.
-* 🤖 **Smart JSON Importer**: Validador de esquemas e integridad de datos antes de guardar, con detección automática de duplicados para evitar inconsistencias al cargar archivos generados por ChatGPT.
-* 💡 **Heurísticas e Insights**: Motor financiero rule-based que sugiere estrategias de amortización de deudas (Bola de Nieve y Avalancha), analiza tu tasa de ahorro y monitorea la salud de tu fondo de emergencia.
 
 ---
 
@@ -21,90 +21,89 @@ El flujo de trabajo principal consiste en importar instantáneas de balance (Sna
 
 * **Core**: Vanilla JavaScript ES2023
 * **Diseño**: CSS Moderno, Material Design 3 & Material You (Modo Claro/Oscuro dinámico)
-* **Persistencia**: Dexie.js (IndexedDB wrapper)
+* **Persistencia**: Dexie.js (IndexedDB)
 * **Gráficos**: Chart.js
 * **Fechas**: Day.js
 * **Construcción**: Vite
 
 ---
 
-## 📁 Arquitectura y Estructura del Proyecto
-
-El código está estructurado para ser fácilmente extensible (por ejemplo, para agregar en el futuro módulos de inventario, inversiones complejas o reportes fiscales) sin reescribir el núcleo:
+## 📁 Estructura del Proyecto
 
 ```text
-/src
-├── /assets           # Iconos, logotipos y splash screens
-├── /config           # Constantes del sistema y variables de temas
-├── /styles           # Hojas de estilo globales (variables M3, layouts responsivos)
-├── /utils            # Utilidades generales (EventBus Pub/Sub y Router de Hash)
-├── /storage          # Cliente de Dexie.js y funciones auxiliares de consulta (Queries)
-├── /engine           # Reglas financieras puras y aisladas (100% testeables en node/bun)
-│   ├── balance.engine.js    # Consolidación Checkpoint + Delta
-│   ├── analytics.engine.js  # Procesado de históricos e ingresos/egresos
-│   ├── insights.engine.js   # Generación de sugerencias heurísticas
-│   ├── json.engine.js       # Validador de integridad y duplicados de importaciones
-│   ├── goal.engine.js       # Proyecciones matemáticas de metas
-│   └── debt.engine.js       # Simulador de priorización de deudas
-├── /components       # Componentes visuales encapsulados
-└── /pages            # Controladores de vista SPA (Dashboard, Analíticas, Movimientos, etc.)
+magifinance/
+├── docs/             # Ficheros compilados de producción (despliegue a GitHub Pages)
+├── public/           # Archivos estáticos estables (manifest, favicon, sw.js)
+├── src/
+│   ├── assets/       # Logotipos e imágenes estáticas
+│   ├── engine/       # Reglas financieras aisladas y testeables (cálculo, validación, insights)
+│   ├── pages/        # Controladores de vista SPA (Dashboard, Analíticas, Movimientos, etc.)
+│   ├── storage/      # Cliente de Dexie.js e inicialización de IndexedDB (db.js y Queries)
+│   ├── styles/       # Hojas de estilo globales y tokens de diseño Material You
+│   ├── utils/        # Utilidades (EventBus de reactividad y Enrutador SPA)
+│   └── main.js       # Punto de entrada de la aplicación
+├── index.html        # Plantilla HTML de desarrollo
+├── package.json      # Configuración de dependencias y scripts de construcción
+└── vite.config.js    # Configuración de compilación de Vite
 ```
 
 ---
 
 ## 📥 Contratos de Datos JSON (Formatos MFP)
 
-MagiFinance utiliza contratos versionados fijos para asegurar la compatibilidad hacia atrás durante años al importar información de ChatGPT.
+MagiFinance utiliza contratos fijos para asegurar la compatibilidad durante la importación de datos generados por Inteligencias Artificiales.
 
 ### 1. Instantánea de Capital (`MFP-Snapshot-v1`)
-Representa el estado actual de tus cuentas y activos en una fecha específica.
+Representa la foto fija de tus cuentas, deudas y metas en una fecha específica de origen.
 
 ```json
 {
   "schema": "MFP-Snapshot-v1",
-  "timestamp": 1783457920,
-  "date": "2026-06-01",
+  "timestamp": 1783468800,
+  "date": "2026-07-08",
   "assets": [
-    { "id": "bbva", "name": "BBVA Nómina", "type": "liquid", "balance": 45000.00 },
-    { "id": "nu", "name": "Nu Ahorro", "type": "savings", "balance": 80000.00 },
-    { "id": "efectivo", "name": "Efectivo Wallet", "type": "liquid", "balance": 1500.00 },
-    { "id": "nu-tdc", "name": "Nu TDC", "type": "liability_credit", "balance": -5200.00 }
+    { "id": "bbva-apartados", "name": "BBVA Apartados", "type": "savings", "balance": 2784.26 },
+    { "id": "efectivo-cartera", "name": "Efectivo en Cartera", "type": "liquid", "balance": 700.00 },
+    { "id": "efectivo-reservado", "name": "Efectivo Reservado", "type": "liquid", "balance": 3000.00 },
+    { "id": "bbva-tdc", "name": "Tarjeta BBVA", "type": "liability_credit", "balance": -19020.87 }
   ],
   "debts": [
-    { "id": "credito-auto", "name": "Crédito Auto", "amount": 120000.00, "originalAmount": 150000.00, "status": "active" }
+    { "id": "credito-nomina-bbva", "name": "Crédito de Nómina BBVA", "amount": 0.00 },
+    { "id": "equipo-audio", "name": "Bajo + Mezcladora", "amount": 2000.00 }
   ],
   "goals": [
-    { "id": "fondo-emergencia", "name": "Fondo Emergencia", "targetAmount": 100000.00, "currentAmount": 80000.00, "targetDate": "2026-12-31" }
+    { "id": "ahorro-general", "name": "Ahorro General", "targetAmount": 10000.00 },
+    { "id": "fondo-emergencia", "name": "Fondo de Emergencia", "targetAmount": 10000.00 },
+    { "id": "metas", "name": "Metas", "targetAmount": 5000.00 }
   ]
 }
 ```
 
-### 2. Flujo de Eventos/Transacciones (`MFP-Events-v1`)
+### 2. Flujo de Transacciones (`MFP-Events-v1`)
 Representa los movimientos que ocurren a lo largo del tiempo. Los saldos de las cuentas se acumularán a partir del snapshot más reciente aplicando estos deltas.
 
 ```json
 {
   "schema": "MFP-Events-v1",
-  "timestamp": 1783457920,
+  "timestamp": 1783457950,
   "events": [
     {
-      "id": "tx-201",
-      "date": "2026-06-02",
+      "id": "tx-301",
+      "date": "2026-07-09",
       "type": "expense",
-      "category": "Comida",
-      "description": "Supermercado Walmart",
-      "amount": 1250.00,
-      "assetId": "bbva"
+      "category": "Alimentos",
+      "description": "Supermercado Semanal",
+      "amount": 850.00,
+      "assetId": "efectivo-cartera"
     },
     {
-      "id": "tx-202",
-      "date": "2026-06-12",
-      "type": "transfer",
-      "category": "Ahorro",
-      "description": "Envío a Cajita Nu",
-      "amount": 10000.00,
-      "assetId": "bbva",
-      "destinationAssetId": "nu"
+      "id": "tx-302",
+      "date": "2026-07-15",
+      "type": "income",
+      "category": "Nómina",
+      "description": "Pago Primera Quincena",
+      "amount": 15000.00,
+      "assetId": "bbva-apartados"
     }
   ]
 }
@@ -115,12 +114,11 @@ Representa los movimientos que ocurren a lo largo del tiempo. Los saldos de las 
 ## 💻 Guía de Inicio Rápido
 
 ### Prerrequisitos
-Tener instalado [Node.js](https://nodejs.org/) (o [Bun](https://bun.sh/) para un rendimiento óptimo de dependencias).
+Tener instalado [Node.js](https://nodejs.org/) o bien [Bun](https://bun.sh/) (recomendado para un desempeño superior).
 
 ### Desarrollo Local
-1. Clona el repositorio e ingresa a la carpeta:
+1. Ingresa a la carpeta del proyecto:
    ```bash
-   git clone <URL_DEL_REPOSITORIO>
    cd magifinance
    ```
 2. Instala las dependencias necesarias:
@@ -128,17 +126,28 @@ Tener instalado [Node.js](https://nodejs.org/) (o [Bun](https://bun.sh/) para un
    bun install
    # o bien: npm install
    ```
-3. Inicia el servidor local de desarrollo:
+3. Inicia el servidor de desarrollo:
    ```bash
    bun run dev
    # o bien: npm run dev
    ```
-   La aplicación se abrirá en `http://localhost:3000/`.
+   La aplicación estará disponible localmente en `http://localhost:3000/`.
 
-### Construcción para Producción (Listo para GitHub Pages)
-Compila el bundle optimizado para despliegue:
+---
+
+## 🚀 Despliegue en Producción (GitHub Pages)
+
+Para compilar y empaquetar la aplicación de manera optimizada:
 ```bash
 bun run build
 # o bien: npm run build
 ```
-Vite generará los archivos finales en la carpeta `/dist`. El archivo `vite.config.js` está preconfigurado con una ruta base relativa (`base: './'`), lo que significa que el directorio `/dist` puede cargarse en cualquier rama de GitHub Pages o subdirectorio de servidor y los recursos CSS/JS se enlazarán correctamente de forma automática.
+
+Vite generará los archivos optimizados dentro del directorio `/docs`. `vite.config.js` está configurado con rutas de assets relativas (`base: './'`) y carpeta de salida `outDir: 'docs'`.
+
+Para que se visualice correctamente en GitHub Pages:
+1. Sube los archivos a tu repositorio (asegúrate de incluir la carpeta `/docs`).
+2. En GitHub, ve a **Settings** ➔ **Pages**.
+3. En **Build and deployment** ➔ **Source**, elige **Deploy from a branch**.
+4. En **Branch**, selecciona tu rama principal (ej: `main` o `master`) y en la carpeta elige **/docs** en lugar de `/(root)`.
+5. Haz clic en **Save**.

@@ -6,8 +6,8 @@ import Dexie from 'dexie';
 
 export const db = new Dexie('MagiFinanceDB');
 
-// Definición de esquema y tablas versión 1
-db.version(1).stores({
+// Definición de esquema y tablas versión 2
+db.version(2).stores({
   snapshots: '++id, date, createdAt',
   transactions: '++id, date, type, category, snapshotId, debtId, assetId',
   assets: 'id, name, type, isActive',

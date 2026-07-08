@@ -101,7 +101,7 @@ export const BalanceEngine = {
       const balance = asset.balance;
       
       // Clasificación contable
-      if (asset.type.startsWith('liability_')) {
+      if (asset.type && asset.type.startsWith('liability_')) {
         // Los pasivos restan al patrimonio. 
         // Si el saldo es negativo (e.g. -$5,000 en TDC), sumamos su valor absoluto a las deudas.
         liabilitiesTotal += Math.abs(balance);

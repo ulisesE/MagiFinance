@@ -61,7 +61,11 @@ export const Queries = {
    */
   async getAssetsWithBalances(targetDate = dayjs().format('YYYY-MM-DD')) {
     const assets = await db.assets.toArray();
-    const snapshots = await db.snapshots.toArray();
+    const dbSnapshots = await db.snapshots.toArray();
+    const snapshots = dbSnapshots.map(s => ({
+      ...s,
+      ...s.rawJson
+    }));
     const transactions = await db.transactions.toArray();
 
     return BalanceEngine.calculateState(assets, snapshots, transactions, targetDate);
@@ -329,7 +333,11 @@ export const Queries = {
     // 2. Obtener todas las transacciones
     const txs = await db.transactions.toArray();
     const assets = await db.assets.toArray();
-    const snapshots = await db.snapshots.toArray();
+    const dbSnapshots = await db.snapshots.toArray();
+    const snapshots = dbSnapshots.map(s => ({
+      ...s,
+      ...s.rawJson
+    }));
 
     // 3. Calcular ingresos/egresos del mes actual y mes anterior
     const currentStats = AnalyticsEngine.getIncomeVsExpense(txs, currentMonthStart, currentMonthEnd);

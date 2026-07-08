@@ -10,19 +10,19 @@
       "balance": 2784.26
     },
     {
-      "id": "cash-wallet",
-      "name": "Efectivo Cartera",
+      "id": "efectivo-cartera",
+      "name": "Efectivo en Cartera",
       "type": "liquid",
       "balance": 700.00
     },
     {
-      "id": "cash-reserved",
+      "id": "efectivo-reservado",
       "name": "Efectivo Reservado",
       "type": "liquid",
       "balance": 3000.00
     },
     {
-      "id": "bbva-credit",
+      "id": "bbva-tdc",
       "name": "Tarjeta BBVA",
       "type": "liability_credit",
       "balance": -19020.87
@@ -30,31 +30,31 @@
   ],
   "debts": [
     {
-      "id": "bbva-payroll-loan",
+      "id": "credito-nomina-bbva",
       "name": "Crédito de Nómina BBVA",
-      "amount": 0
+      "amount": 1
     },
     {
-      "id": "audio-equipment",
+      "id": "equipo-audio",
       "name": "Bajo + Mezcladora",
-      "amount": 2000
+      "amount": 2000.00
     }
   ],
   "goals": [
     {
-      "id": "general-savings",
+      "id": "ahorro-general",
       "name": "Ahorro General",
-      "targetAmount": 10000
+      "targetAmount": 10000.00
     },
     {
-      "id": "emergency-fund",
+      "id": "fondo-emergencia",
       "name": "Fondo de Emergencia",
-      "targetAmount": 10000
+      "targetAmount": 10000.00
     },
     {
-      "id": "future-goals",
+      "id": "metas",
       "name": "Metas",
-      "targetAmount": 5000
+      "targetAmount": 5000.00
     }
   ]
 }
