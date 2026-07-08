@@ -93,8 +93,8 @@ export const Queries = {
     const debts = await this.getDebtsWithProgress();
 
     // Filtrar activos reales y pasivos
-    const realAssets = engineState.assets.filter(a => !a.type.startsWith('liability_'));
-    const liabilities = engineState.assets.filter(a => a.type.startsWith('liability_'));
+    const realAssets = engineState.assets.filter(a => !a.type?.startsWith('liability_'));
+    const liabilities = engineState.assets.filter(a => a.type?.startsWith('liability_'));
 
     // Calcular fondo de emergencia
     const emergencyFundGoal = goals.find(g => g.name.toLowerCase().includes('emergencia') || g.id === 'emergencia');
