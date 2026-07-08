@@ -273,6 +273,9 @@ export function openImportDialog(onSuccess) {
           if (json.schema === 'MFP-Snapshot-v1') {
             validation = JsonEngine.validateSnapshotV1(json);
             importType = 'snapshot';
+          } else if (json.schema === 'MFP-Snapshot-v2') {
+            validation = JsonEngine.validateSnapshotV2(json);
+            importType = 'snapshot';
           } else if (json.schema === 'MFP-Events-v1') {
             validation = JsonEngine.validateTransactionsV1(json);
             importType = 'events';

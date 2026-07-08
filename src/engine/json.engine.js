@@ -65,6 +65,75 @@ export const JsonEngine = {
   },
 
   /**
+   * Valida un archivo JSON de Snapshot financiero v2 (MFP-Snapshot-v2).
+   * @param {Object} json Objeto JSON importado.
+   * @returns {Object} Resultado de la validación { isValid, errors, data }
+   */
+  validateSnapshotV2(json) {
+    const errors = [];
+    
+    if (!json || typeof json !== 'object') {
+      return { isValid: false, errors: ['El archivo no contiene un JSON válido.'] };
+    }
+
+    if (json.schema !== 'MFP-Snapshot-v2') {
+      errors.push(`Esquema inválido. Se esperaba 'MFP-Snapshot-v2' y se obtuvo '${json.schema || 'desconocido'}'.`);
+    }
+
+    if (!json.date || !/^\d{4}-\d{2}-\d{2}$/.test(json.date)) {
+      errors.push('La fecha del snapshot es obligatoria y debe tener formato YYYY-MM-DD.');
+    }
+
+    if (!Array.isArray(json.assets)) {
+      errors.push('El campo "assets" es obligatorio y debe ser un arreglo.');
+    } else {
+      json.assets.forEach((asset, idx) => {
+        if (!asset.id) errors.push(`Activo en posición ${idx}: Falta el ID obligatorio.`);
+        if (!asset.name) errors.push(`Activo "${asset.id || idx}": Falta el nombre.`);
+        if (!asset.type) errors.push(`Activo "${asset.id || idx}": Falta el tipo (liquid, savings, investment, fixed).`);
+        if (typeof asset.balance !== 'number') errors.push(`Activo "${asset.id || idx}": El balance debe ser un número.`);
+      });
+    }
+
+    if (json.buckets && !Array.isArray(json.buckets)) {
+      errors.push('El campo "buckets" debe ser un arreglo si está presente.');
+    } else if (json.buckets) {
+      json.buckets.forEach((bucket, idx) => {
+        if (!bucket.id) errors.push(`Apartado en posición ${idx}: Falta el ID obligatorio.`);
+        if (!bucket.name) errors.push(`Apartado "${bucket.id || idx}": Falta el nombre.`);
+        if (!bucket.assetId) errors.push(`Apartado "${bucket.id || idx}": Falta el assetId del activo asociado.`);
+        if (typeof bucket.balance !== 'number') errors.push(`Apartado "${bucket.id || idx}": El saldo debe ser un número.`);
+      });
+    }
+
+    if (json.debts && !Array.isArray(json.debts)) {
+      errors.push('El campo "debts" debe ser un arreglo si está presente.');
+    } else if (json.debts) {
+      json.debts.forEach((debt, idx) => {
+        if (!debt.id) errors.push(`Deuda en posición ${idx}: Falta el ID obligatorio.`);
+        if (!debt.name) errors.push(`Deuda "${debt.id || idx}": Falta el nombre.`);
+        if (typeof debt.amount !== 'number') errors.push(`Deuda "${debt.id || idx}": El monto debe ser un número.`);
+      });
+    }
+
+    if (json.goals && !Array.isArray(json.goals)) {
+      errors.push('El campo "goals" debe ser un arreglo si está presente.');
+    } else if (json.goals) {
+      json.goals.forEach((goal, idx) => {
+        if (!goal.id) errors.push(`Meta en posición ${idx}: Falta el ID obligatorio.`);
+        if (!goal.name) errors.push(`Meta "${goal.id || idx}": Falta el nombre.`);
+        if (typeof goal.targetAmount !== 'number') errors.push(`Meta "${goal.id || idx}": El monto objetivo debe ser un número.`);
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      data: json
+    };
+  },
+
+  /**
    * Valida un archivo JSON de Transacciones (MFP-Events-v1).
    * @param {Object} json Objeto JSON importado.
    * @returns {Object} Resultado de la validación { isValid, errors, data }

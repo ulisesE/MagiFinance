@@ -219,19 +219,54 @@ export const Queries = {
   },
 
   /**
-   * Registra un Snapshot financiero MFP-Snapshot-v1.
+   * Registra un Snapshot financiero MFP-Snapshot-v1 o v2.
    */
   async importSnapshot(snapshotData) {
-    // 1. Agregar a snapshots
+    let snapshotToImport = snapshotData;
+    const migratedBuckets = [];
+    let isV1 = false;
+
+    // Lógica de migración automática para snapshots antiguos (v1 -> v2)
+    if (snapshotData.assets) {
+      const cleanAssets = snapshotData.assets.map(asset => {
+        if (asset.children && Array.isArray(asset.children)) {
+          isV1 = true;
+          asset.children.forEach(child => {
+            migratedBuckets.push({
+              id: child.id,
+              name: child.name,
+              assetId: asset.id,
+              balance: child.balance,
+              color: child.color || null,
+              icon: child.icon || null
+            });
+          });
+          const { children, ...rest } = asset;
+          return rest;
+        }
+        return asset;
+      });
+
+      if (isV1) {
+        snapshotToImport = {
+          ...snapshotData,
+          schema: 'MFP-Snapshot-v2',
+          assets: cleanAssets,
+          buckets: migratedBuckets
+        };
+      }
+    }
+
+    // 1. Agregar a snapshots (guardar versión migrada)
     await db.snapshots.add({
-      date: snapshotData.date,
+      date: snapshotToImport.date,
       createdAt: Date.now(),
-      rawJson: snapshotData
+      rawJson: snapshotToImport
     });
 
-    // 2. Insertar activos incluidos si no existen, o actualizar si es necesario
-    if (snapshotData.assets) {
-      for (const asset of snapshotData.assets) {
+    // 2. Insertar activos incluidos si no existen
+    if (snapshotToImport.assets) {
+      for (const asset of snapshotToImport.assets) {
         const exists = await db.assets.get(asset.id);
         if (!exists) {
           await db.assets.add({
@@ -244,9 +279,23 @@ export const Queries = {
       }
     }
 
-    // 3. Insertar deudas incluidas si no existen
-    if (snapshotData.debts) {
-      for (const debt of snapshotData.debts) {
+    // 3. Insertar apartados (buckets) incluidos si no existen
+    if (snapshotToImport.buckets) {
+      for (const bucket of snapshotToImport.buckets) {
+        const exists = await db.buckets.get(bucket.id);
+        if (!exists) {
+          await db.buckets.add({
+            id: bucket.id,
+            name: bucket.name,
+            assetId: bucket.assetId
+          });
+        }
+      }
+    }
+
+    // 4. Insertar deudas incluidas si no existen
+    if (snapshotToImport.debts) {
+      for (const debt of snapshotToImport.debts) {
         const exists = await db.debts.get(debt.id);
         if (!exists) {
           await db.debts.add({
@@ -255,16 +304,16 @@ export const Queries = {
             amount: debt.amount,
             originalAmount: debt.originalAmount || debt.amount,
             status: debt.status || 'active',
-            startDate: snapshotData.date,
+            startDate: snapshotToImport.date,
             notes: 'Importado de snapshot'
           });
         }
       }
     }
 
-    // 4. Insertar metas incluidas si no existen
-    if (snapshotData.goals) {
-      for (const goal of snapshotData.goals) {
+    // 5. Insertar metas incluidas si no existen
+    if (snapshotToImport.goals) {
+      for (const goal of snapshotToImport.goals) {
         const exists = await db.goals.get(goal.id);
         if (!exists) {
           await db.goals.add({
