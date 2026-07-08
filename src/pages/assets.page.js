@@ -13,9 +13,14 @@ import { Toast } from '../utils/toast';
  */
 export async function renderAssets(container) {
   const renderContent = async () => {
-    // Obtener activos con balances actuales consolidados
-    const state = await Queries.getAssetsWithBalances();
-    const assets = state.assets;
+    // Obtener información financiera unificada
+    const summary = await Queries.getFinancialSummary();
+    const assets = summary.assets;
+    const liabilities = summary.liabilities;
+
+    // Calcular patrimonio líquido
+    const totalLiabilitiesVal = liabilities.reduce((sum, l) => sum + Math.abs(l.balance), 0);
+    const liquidNetWorth = summary.liquidity - totalLiabilitiesVal;
 
     const translateType = (type) => {
       switch (type) {
@@ -36,7 +41,7 @@ export async function renderAssets(container) {
         <div class="flex-row justify-between align-center card card-glass" style="padding: 16px 24px;">
           <div class="flex-column gap-xs">
             <span class="text-label-large" style="color: var(--md-sys-color-primary);">BALANCE DE CAPITAL</span>
-            <h1 class="text-headline-medium" style="font-weight: 700;">Mis Activos y Pasivos</h1>
+            <h1 class="text-headline-medium" style="font-weight: 700;">Mis Activos y Cuentas</h1>
           </div>
           <button id="add-asset-btn" class="btn btn-primary">
             <span class="icon">add</span> Agregar Cuenta/Activo
@@ -47,12 +52,12 @@ export async function renderAssets(container) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="card flex-column gap-xs">
             <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Patrimonio Líquido</span>
-            <h2 style="color: var(--md-sys-color-primary); font-weight: 800;">$${state.liquidNetWorth.toLocaleString()}</h2>
+            <h2 style="color: var(--md-sys-color-primary); font-weight: 800;">$${liquidNetWorth.toLocaleString()}</h2>
             <span class="text-label-small" style="color: var(--md-sys-color-outline);">Solo activos líquidos menos pasivos</span>
           </div>
           <div class="card flex-column gap-xs">
             <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Patrimonio Total</span>
-            <h2 style="color: var(--color-income); font-weight: 800;">$${state.netWorth.toLocaleString()}</h2>
+            <h2 style="color: var(--color-income); font-weight: 800;">$${summary.netWorth.toLocaleString()}</h2>
             <span class="text-label-small" style="color: var(--md-sys-color-outline);">Todos los activos menos pasivos</span>
           </div>
         </div>
@@ -63,23 +68,62 @@ export async function renderAssets(container) {
           
           <div class="flex-column gap-sm">
             ${assets.map(asset => {
-              const isLiability = asset.type.startsWith('liability_');
-              const balanceCol = isLiability ? 'var(--color-expense)' : 'var(--md-sys-color-on-background)';
-              const iconName = isLiability ? 'credit_card' : (asset.type === 'savings' ? 'savings' : (asset.type === 'investment' ? 'show_chart' : 'account_balance_wallet'));
+              const balanceCol = 'var(--md-sys-color-on-background)';
+              const iconName = asset.type === 'savings' ? 'savings' : (asset.type === 'investment' ? 'show_chart' : 'account_balance_wallet');
 
-              return `
-                <div class="flex-row justify-between align-center card" style="padding: 12px 16px; background-color: var(--md-sys-color-surface-variant); border: none;">
-                  <div class="flex-row align-center gap-md">
-                    <span class="icon" style="color: var(--md-sys-color-primary); font-size: 28px;">${iconName}</span>
-                    <div class="flex-column">
-                      <strong class="text-title-medium">${asset.name}</strong>
-                      <span class="text-body-small" style="color: var(--md-sys-color-outline);">${translateType(asset.type)}</span>
+              // Obtener apartados de este activo
+              const assetBuckets = summary.buckets.filter(b => b.assetId === asset.id);
+              const hasBuckets = assetBuckets.length > 0;
+
+              let bucketsAccordionHtml = '';
+              if (hasBuckets) {
+                bucketsAccordionHtml = `
+                  <div class="buckets-accordion" id="accordion-${asset.id}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--md-sys-color-outline-variant); width: 100%;">
+                    <div class="flex-column gap-xs">
+                      ${assetBuckets.map(b => {
+                        const pct = asset.balance > 0 ? ((b.balance / asset.balance) * 100).toFixed(1) : 0;
+                        return `
+                          <div class="flex-row justify-between align-center" style="padding: 8px 12px; background-color: var(--md-sys-color-surface); border-radius: var(--border-radius-xs); margin-bottom: 4px;">
+                            <span class="text-body-medium flex-row align-center gap-xs">
+                              <span class="icon" style="font-size: 16px; color: var(--md-sys-color-primary);">folder_special</span>
+                              ${b.name}
+                            </span>
+                            <span class="text-body-medium" style="font-weight: 600; color: var(--md-sys-color-primary);">
+                              $${b.balance.toLocaleString()} <span style="font-size: 11px; color: var(--md-sys-color-outline); margin-left: 4px; font-weight: normal;">(${pct}%)</span>
+                            </span>
+                          </div>
+                        `;
+                      }).join('')}
                     </div>
                   </div>
-                  <div class="flex-row align-center gap-md">
-                    <strong class="text-title-large" style="color: ${balanceCol};">$${asset.balance.toLocaleString()}</strong>
-                    <button class="edit-asset-btn icon" data-id="${asset.id}" style="color: var(--md-sys-color-outline); font-size: 20px;">edit</button>
+                `;
+              }
+
+              return `
+                <div class="flex-column card" style="padding: 16px; background-color: var(--md-sys-color-surface-variant); border: none; gap: 8px;">
+                  <div class="flex-row justify-between align-center w-full">
+                    <div class="flex-row align-center gap-md">
+                      <span class="icon" style="color: var(--md-sys-color-primary); font-size: 28px;">${iconName}</span>
+                      <div class="flex-column">
+                        <strong class="text-title-medium">${asset.name}</strong>
+                        <span class="text-body-small" style="color: var(--md-sys-color-outline);">${translateType(asset.type)}</span>
+                      </div>
+                    </div>
+                    <div class="flex-row align-center gap-md">
+                      <strong class="text-title-large" style="color: ${balanceCol};">$${asset.balance.toLocaleString()}</strong>
+                      <button class="edit-asset-btn icon" data-id="${asset.id}" style="color: var(--md-sys-color-outline); font-size: 20px;">edit</button>
+                    </div>
                   </div>
+
+                  ${hasBuckets ? `
+                    <div class="flex-row justify-end align-center w-full mt-xs">
+                      <button class="btn btn-outlined btn-small toggle-accordion-btn" data-target="accordion-${asset.id}" style="padding: 4px 8px; font-size: 11px;">
+                        <span class="icon" style="font-size: 14px; margin-right: 4px;">expand_more</span> Ver Apartados
+                      </button>
+                    </div>
+                  ` : ''}
+
+                  ${bucketsAccordionHtml}
                 </div>
               `;
             }).join('')}
@@ -96,8 +140,25 @@ export async function renderAssets(container) {
 
     container.querySelectorAll('.edit-asset-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = e.target.dataset.id;
+        const id = e.currentTarget.dataset.id;
         openEditAssetDialog(id, renderContent);
+      });
+    });
+
+    // Eventos del acordeón de apartados
+    container.querySelectorAll('.toggle-accordion-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetId = e.currentTarget.dataset.target;
+        const accordion = document.getElementById(targetId);
+        if (!accordion) return;
+        
+        if (accordion.style.display === 'none') {
+          accordion.style.display = 'block';
+          e.currentTarget.innerHTML = `<span class="icon" style="font-size: 14px; margin-right: 4px;">expand_less</span> Ocultar Apartados`;
+        } else {
+          accordion.style.display = 'none';
+          e.currentTarget.innerHTML = `<span class="icon" style="font-size: 14px; margin-right: 4px;">expand_more</span> Ver Apartados`;
+        }
       });
     });
   };

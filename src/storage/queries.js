@@ -453,9 +453,9 @@ export const Queries = {
     const prevMonthStart = today.subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
     const prevMonthEnd = today.subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
 
-    // 1. Obtener estados de balances (hoy vs hace un mes)
-    const stateToday = await this.getAssetsWithBalances(today.format('YYYY-MM-DD'));
-    const stateMonthAgo = await this.getAssetsWithBalances(today.subtract(1, 'month').format('YYYY-MM-DD'));
+    // 1. Obtener estados de balances unificados (hoy vs hace un mes)
+    const summary = await this.getFinancialSummary(today.format('YYYY-MM-DD'));
+    const summaryMonthAgo = await this.getFinancialSummary(today.subtract(1, 'month').format('YYYY-MM-DD'));
 
     // 2. Obtener todas las transacciones
     const txs = await db.transactions.toArray();
@@ -470,26 +470,21 @@ export const Queries = {
     const currentStats = AnalyticsEngine.getIncomeVsExpense(txs, currentMonthStart, currentMonthEnd);
     const prevStats = AnalyticsEngine.getIncomeVsExpense(txs, prevMonthStart, prevMonthEnd);
 
-    // 4. Calcular activos líquidos totales hoy
-    const liquidAssetsVal = stateToday.assets
-      .filter(a => a.type === 'liquid')
-      .reduce((sum, a) => sum + a.balance, 0);
-
-    // 5. Generar insights
+    // 4. Generar insights
     const insights = InsightsEngine.generate(
       currentStats,
       prevStats,
-      stateToday.netWorth,
-      stateMonthAgo.netWorth,
-      liquidAssetsVal
+      summary.netWorth,
+      summaryMonthAgo.netWorth,
+      summary.liquidity
     );
 
-    // 6. Historial de patrimonio de los últimos 6 meses para minigráfico
+    // 5. Historial de patrimonio de los últimos 6 meses para minigráfico
     const history6Months = AnalyticsEngine.getNetWorthHistory(assets, snapshots, txs, 6);
 
     return {
-      state: stateToday,
-      previousNetWorth: stateMonthAgo.netWorth,
+      summary,
+      previousNetWorth: summaryMonthAgo.netWorth,
       currentMonthStats: currentStats,
       insights,
       history: history6Months

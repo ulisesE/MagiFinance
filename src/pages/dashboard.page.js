@@ -24,11 +24,11 @@ export async function renderDashboard(container) {
 
   try {
     const data = await Queries.getDashboardData();
-    const { state, previousNetWorth, currentMonthStats, insights, history } = data;
+    const { summary, previousNetWorth, currentMonthStats, insights, history } = data;
     const snapshotsCount = await db.snapshots.count();
 
     // Verificar si la base de datos está vacía (onboarding)
-    if (!state.assets || state.assets.length === 0) {
+    if (!summary.assets || (summary.assets.length === 0 && summary.liabilities.length === 0)) {
       container.innerHTML = `
         <div class="flex-column gap-xl align-center" style="max-width: 680px; margin: 40px auto; text-align: center; padding: 0 16px;">
           
@@ -103,17 +103,28 @@ export async function renderDashboard(container) {
     }
 
     // Calcular variación
-    const nwVariation = state.netWorth - previousNetWorth;
+    const nwVariation = summary.netWorth - previousNetWorth;
     const nwVariationPercent = previousNetWorth > 0 ? (nwVariation / previousNetWorth) * 100 : 0;
     const variationClass = nwVariation >= 0 ? 'text-income' : 'text-expense';
     const variationIcon = nwVariation >= 0 ? 'trending_up' : 'trending_down';
     const variationText = `${nwVariation >= 0 ? '+' : ''}$${nwVariation.toLocaleString()} (${nwVariationPercent.toFixed(1)}% vs mes anterior)`;
 
-    // Separar activos y pasivos para mostrar
-    const liquidAssets = state.assets.filter(a => a.type === 'liquid');
-    const savingsAssets = state.assets.filter(a => a.type === 'savings');
-    const investmentAssets = state.assets.filter(a => a.type === 'investment');
-    const fixedAssets = state.assets.filter(a => a.type === 'fixed');
+    // Calcular KPIs extendidos de salud financiera
+    const totalDebts = summary.debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.remainingAmount, 0);
+    const activeDebts = summary.debts.filter(d => !d.isPaid);
+    const nextPaymentAmount = activeDebts.reduce((sum, d) => {
+      const matches = d.notes ? d.notes.match(/pago:\s*\$?([\d,.]+)/i) : null;
+      if (matches) return sum + parseFloat(matches[1].replace(/,/g, ''));
+      return sum + (d.remainingAmount * 0.05);
+    }, 0);
+    const activeGoals = summary.goals.filter(g => !g.isCompleted);
+    const totalGoalsSaved = summary.goals.reduce((sum, g) => sum + g.currentAmount, 0);
+
+    // Separar activos para mostrar
+    const liquidAssets = summary.assets.filter(a => a.type === 'liquid');
+    const savingsAssets = summary.assets.filter(a => a.type === 'savings');
+    const investmentAssets = summary.assets.filter(a => a.type === 'investment');
+    const fixedAssets = summary.assets.filter(a => a.type === 'fixed');
     
     // Contenido HTML de la página
     container.innerHTML = `
@@ -123,7 +134,7 @@ export async function renderDashboard(container) {
         <div class="flex-row justify-between align-center card card-glass" style="padding: 24px; border-radius: var(--border-radius-xl);">
           <div class="flex-column gap-xs">
             <span class="text-label-large" style="color: var(--md-sys-color-primary);">RESUMEN GENERAL</span>
-            <h1 class="text-display-small" style="font-weight: 800;">$${state.netWorth.toLocaleString()}</h1>
+            <h1 class="text-display-small" style="font-weight: 800;">$${summary.netWorth.toLocaleString()}</h1>
             <div class="flex-row align-center gap-xs ${variationClass}" style="font-weight: 500; font-size: 0.875rem;">
               <span class="icon" style="font-size: 18px;">${variationIcon}</span>
               <span>${variationText}</span>
@@ -139,28 +150,49 @@ export async function renderDashboard(container) {
           </div>
         </div>
 
-        <!-- KPIs Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+        <!-- KPIs Grid (MD3 Cards) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
           
-          <div id="kpi-assets" class="card flex-column gap-xs" style="cursor: pointer;">
-            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Activos Totales</span>
-            <span class="text-headline-small" style="font-weight: 700; color: var(--color-income);">$${state.assetsTotal.toLocaleString()}</span>
+          <div id="kpi-networth" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Patrimonio Neto</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--md-sys-color-on-background);">$${summary.netWorth.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">Balance total consolidado</span>
           </div>
 
-          <div id="kpi-liabilities" class="card flex-column gap-xs" style="cursor: pointer;">
-            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Pasivos Totales</span>
-            <span class="text-headline-small" style="font-weight: 700; color: var(--color-expense);">$${state.liabilitiesTotal.toLocaleString()}</span>
+          <div id="kpi-available" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Dinero Disponible</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--color-income);">$${summary.available.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">Liquidez libre de apartados</span>
           </div>
 
-          <div id="kpi-liquidity" class="card flex-column gap-xs" style="cursor: pointer;">
-            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Liquidez Neta</span>
-            <span class="text-headline-small" style="font-weight: 700; color: var(--md-sys-color-primary);">$${state.liquidNetWorth.toLocaleString()}</span>
+          <div id="kpi-reserved" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Dinero Reservado</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--md-sys-color-primary);">$${summary.reserved.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">Asignado en Apartados</span>
           </div>
 
-          <div id="kpi-savings" class="card flex-column gap-xs" style="cursor: pointer;">
-            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Ahorro de este Mes</span>
-            <span class="text-headline-small" style="font-weight: 700; color: var(--color-transfer);">$${currentMonthStats.netSavings.toLocaleString()}</span>
-            <span class="text-label-small" style="color: var(--md-sys-color-outline);">${currentMonthStats.savingsRate.toFixed(1)}% tasa</span>
+          <div id="kpi-debts" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Total de Deudas</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--color-expense);">$${totalDebts.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">${summary.debts.filter(d => !d.isPaid).length} pasivos activos</span>
+          </div>
+
+          <div id="kpi-nextpayment" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Próximo Pago Est.</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--color-expense);">$${nextPaymentAmount.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">Cuota sugerida mensual</span>
+          </div>
+
+          <div id="kpi-emergency" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Fondo de Emergencia</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--color-transfer);">$${summary.emergencyFund.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">Reserva de seguridad</span>
+          </div>
+
+          <div id="kpi-goals" class="card flex-column gap-xs" style="cursor: pointer;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Ahorro en Metas</span>
+            <span class="text-headline-small" style="font-weight: 700; color: var(--color-transfer);">$${totalGoalsSaved.toLocaleString()}</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">${activeGoals.length} metas activas</span>
           </div>
 
         </div>
@@ -210,11 +242,11 @@ export async function renderDashboard(container) {
             <div class="flex-column gap-xs">
               <div class="flex-row justify-between text-body-small">
                 <span>Tarjetas de Crédito</span>
-                <strong>$${state.assets.filter(a => a.type === 'liability_credit').reduce((sum, a) => sum + Math.abs(a.balance), 0).toLocaleString()}</strong>
+                <strong>$${summary.liabilities.filter(a => a.type === 'liability_credit').reduce((sum, a) => sum + Math.abs(a.balance), 0).toLocaleString()}</strong>
               </div>
               <div class="flex-row justify-between text-body-small">
                 <span>Préstamos / Deudas</span>
-                <strong>$${state.assets.filter(a => a.type === 'liability_debt').reduce((sum, a) => sum + Math.abs(a.balance), 0).toLocaleString()}</strong>
+                <strong>$${summary.liabilities.filter(a => a.type === 'liability_debt').reduce((sum, a) => sum + Math.abs(a.balance), 0).toLocaleString()}</strong>
               </div>
             </div>
           </div>
@@ -268,18 +300,13 @@ export async function renderDashboard(container) {
     }
 
     // Hook up KPI cards
-    document.getElementById('kpi-assets')?.addEventListener('click', () => {
-      window.location.hash = '#/assets';
-    });
-    document.getElementById('kpi-liabilities')?.addEventListener('click', () => {
-      window.location.hash = '#/debts';
-    });
-    document.getElementById('kpi-liquidity')?.addEventListener('click', () => {
-      window.location.hash = '#/assets';
-    });
-    document.getElementById('kpi-savings')?.addEventListener('click', () => {
-      window.location.hash = '#/analytics';
-    });
+    document.getElementById('kpi-networth')?.addEventListener('click', () => { window.location.hash = '#/assets'; });
+    document.getElementById('kpi-available')?.addEventListener('click', () => { window.location.hash = '#/assets'; });
+    document.getElementById('kpi-reserved')?.addEventListener('click', () => { window.location.hash = '#/buckets'; });
+    document.getElementById('kpi-debts')?.addEventListener('click', () => { window.location.hash = '#/debts'; });
+    document.getElementById('kpi-nextpayment')?.addEventListener('click', () => { window.location.hash = '#/debts'; });
+    document.getElementById('kpi-emergency')?.addEventListener('click', () => { window.location.hash = '#/goals'; });
+    document.getElementById('kpi-goals')?.addEventListener('click', () => { window.location.hash = '#/goals'; });
 
     // Renderizar gráfico
     renderChart(history);
@@ -401,6 +428,7 @@ async function openNewTransactionDialog() {
   }
 
   const debts = await Queries.getDebtsWithProgress();
+  const buckets = await Queries.getBuckets();
 
   const optionsHtml = assets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   const debtOptionsHtml = debts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
@@ -431,10 +459,24 @@ async function openNewTransactionDialog() {
         </select>
       </div>
 
+      <div class="form-group" id="bucket-group" style="display: none;">
+        <label class="form-label">Apartado de Origen</label>
+        <select id="tx-bucket" class="form-control">
+          <!-- Rellenado dinámicamente -->
+        </select>
+      </div>
+
       <div class="form-group" id="dest-asset-group" style="display: none;">
         <label class="form-label">Activo de Destino (Cuenta)</label>
         <select id="tx-dest-asset" class="form-control">
           ${optionsHtml}
+        </select>
+      </div>
+
+      <div class="form-group" id="dest-bucket-group" style="display: none;">
+        <label class="form-label">Apartado de Destino</label>
+        <select id="tx-dest-bucket" class="form-control">
+          <!-- Rellenado dinámicamente -->
         </select>
       </div>
 
@@ -470,17 +512,57 @@ async function openNewTransactionDialog() {
 
   DialogManager.open(dialogHtml, (modal) => {
     const typeSelect = modal.querySelector('#tx-type');
+    const assetSelect = modal.querySelector('#tx-asset');
+    const destAssetSelect = modal.querySelector('#tx-dest-asset');
+    const bucketGroup = modal.querySelector('#bucket-group');
+    const bucketSelect = modal.querySelector('#tx-bucket');
+    const destBucketGroup = modal.querySelector('#dest-bucket-group');
+    const destBucketSelect = modal.querySelector('#tx-dest-bucket');
     const destGroup = modal.querySelector('#dest-asset-group');
     const debtGroup = modal.querySelector('#debt-group');
     const cancelBtn = modal.querySelector('#cancel-tx-btn');
     const form = modal.querySelector('#new-tx-form');
 
-    // Cambiar la vista de campos dependientes del tipo
+    const updateBuckets = () => {
+      const assetId = assetSelect.value;
+      const assetBuckets = buckets.filter(b => b.assetId === assetId);
+      if (assetBuckets.length > 0) {
+        bucketGroup.style.display = 'flex';
+        bucketSelect.innerHTML = '<option value="">Ninguno (Saldo general de la cuenta)</option>' + 
+          assetBuckets.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      } else {
+        bucketGroup.style.display = 'none';
+        bucketSelect.value = '';
+      }
+    };
+
+    const updateDestBuckets = () => {
+      const isTransfer = typeSelect.value === 'transfer';
+      const destAssetId = destAssetSelect.value;
+      const destAssetBuckets = buckets.filter(b => b.assetId === destAssetId);
+      if (isTransfer && destAssetBuckets.length > 0) {
+        destBucketGroup.style.display = 'flex';
+        destBucketSelect.innerHTML = '<option value="">Ninguno (Saldo general de la cuenta)</option>' + 
+          destAssetBuckets.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      } else {
+        destBucketGroup.style.display = 'none';
+        destBucketSelect.value = '';
+      }
+    };
+
     typeSelect.addEventListener('change', () => {
       const type = typeSelect.value;
       destGroup.style.display = type === 'transfer' ? 'flex' : 'none';
       debtGroup.style.display = type === 'debt_payment' ? 'flex' : 'none';
+      updateDestBuckets();
     });
+
+    assetSelect.addEventListener('change', updateBuckets);
+    destAssetSelect.addEventListener('change', updateDestBuckets);
+
+    // Initial check
+    updateBuckets();
+    updateDestBuckets();
 
     cancelBtn.addEventListener('click', () => DialogManager.close());
 
@@ -490,14 +572,19 @@ async function openNewTransactionDialog() {
       const tx = {
         date: modal.querySelector('#tx-date').value,
         type: typeSelect.value,
-        assetId: modal.querySelector('#tx-asset').value,
+        assetId: assetSelect.value,
         amount: parseFloat(modal.querySelector('#tx-amount').value),
         category: modal.querySelector('#tx-category').value.trim(),
         description: modal.querySelector('#tx-desc').value.trim()
       };
 
+      const bucketId = bucketSelect.value;
+      if (bucketId) tx.bucketId = bucketId;
+
       if (tx.type === 'transfer') {
-        tx.destinationAssetId = modal.querySelector('#tx-dest-asset').value;
+        tx.destinationAssetId = destAssetSelect.value;
+        const destBucketId = destBucketSelect.value;
+        if (destBucketId) tx.destinationBucketId = destBucketId;
       }
       if (tx.type === 'debt_payment') {
         tx.debtId = modal.querySelector('#tx-debt').value || null;

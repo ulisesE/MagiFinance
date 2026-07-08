@@ -13,6 +13,7 @@ import { renderAssets } from './pages/assets.page';
 import { renderDebts } from './pages/debts.page';
 import { renderGoals } from './pages/goals.page';
 import { renderSettings } from './pages/settings.page';
+import { renderBuckets } from './pages/buckets.page';
 import { Queries } from './storage/queries';
 import { EventBus } from './utils/event-bus';
 
@@ -22,6 +23,7 @@ const routes = {
   '/analytics': renderAnalytics,
   '/transactions': renderTransactions,
   '/assets': renderAssets,
+  '/buckets': renderBuckets,
   '/debts': renderDebts,
   '/goals': renderGoals,
   '/settings': renderSettings

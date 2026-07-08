@@ -406,6 +406,7 @@ async function openAddManualDialog(onSuccess) {
   }
 
   const debts = await Queries.getDebtsWithProgress();
+  const buckets = await Queries.getBuckets();
 
   const optionsHtml = assets.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
   const debtOptionsHtml = debts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
@@ -436,10 +437,24 @@ async function openAddManualDialog(onSuccess) {
         </select>
       </div>
 
+      <div class="form-group" id="bucket-group" style="display: none;">
+        <label class="form-label">Apartado de Origen</label>
+        <select id="tx-bucket" class="form-control">
+          <!-- Rellenado dinámicamente -->
+        </select>
+      </div>
+
       <div class="form-group" id="dest-asset-group" style="display: none;">
         <label class="form-label">Activo de Destino (Cuenta)</label>
         <select id="tx-dest-asset" class="form-control">
           ${optionsHtml}
+        </select>
+      </div>
+
+      <div class="form-group" id="dest-bucket-group" style="display: none;">
+        <label class="form-label">Apartado de Destino</label>
+        <select id="tx-dest-bucket" class="form-control">
+          <!-- Rellenado dinámicamente -->
         </select>
       </div>
 
@@ -475,16 +490,57 @@ async function openAddManualDialog(onSuccess) {
 
   DialogManager.open(dialogHtml, (modal) => {
     const typeSelect = modal.querySelector('#tx-type');
+    const assetSelect = modal.querySelector('#tx-asset');
+    const destAssetSelect = modal.querySelector('#tx-dest-asset');
+    const bucketGroup = modal.querySelector('#bucket-group');
+    const bucketSelect = modal.querySelector('#tx-bucket');
+    const destBucketGroup = modal.querySelector('#dest-bucket-group');
+    const destBucketSelect = modal.querySelector('#tx-dest-bucket');
     const destGroup = modal.querySelector('#dest-asset-group');
     const debtGroup = modal.querySelector('#debt-group');
     const cancelBtn = modal.querySelector('#cancel-tx-btn');
     const form = modal.querySelector('#new-tx-form');
 
+    const updateBuckets = () => {
+      const assetId = assetSelect.value;
+      const assetBuckets = buckets.filter(b => b.assetId === assetId);
+      if (assetBuckets.length > 0) {
+        bucketGroup.style.display = 'flex';
+        bucketSelect.innerHTML = '<option value="">Ninguno (Saldo general de la cuenta)</option>' + 
+          assetBuckets.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      } else {
+        bucketGroup.style.display = 'none';
+        bucketSelect.value = '';
+      }
+    };
+
+    const updateDestBuckets = () => {
+      const isTransfer = typeSelect.value === 'transfer';
+      const destAssetId = destAssetSelect.value;
+      const destAssetBuckets = buckets.filter(b => b.assetId === destAssetId);
+      if (isTransfer && destAssetBuckets.length > 0) {
+        destBucketGroup.style.display = 'flex';
+        destBucketSelect.innerHTML = '<option value="">Ninguno (Saldo general de la cuenta)</option>' + 
+          destAssetBuckets.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+      } else {
+        destBucketGroup.style.display = 'none';
+        destBucketSelect.value = '';
+      }
+    };
+
     typeSelect.addEventListener('change', () => {
       const type = typeSelect.value;
       destGroup.style.display = type === 'transfer' ? 'flex' : 'none';
       debtGroup.style.display = type === 'debt_payment' ? 'flex' : 'none';
+      updateDestBuckets();
     });
+
+    assetSelect.addEventListener('change', updateBuckets);
+    destAssetSelect.addEventListener('change', updateDestBuckets);
+
+    // Initial check
+    updateBuckets();
+    updateDestBuckets();
 
     cancelBtn.addEventListener('click', () => DialogManager.close());
 
@@ -494,14 +550,19 @@ async function openAddManualDialog(onSuccess) {
       const tx = {
         date: modal.querySelector('#tx-date').value,
         type: typeSelect.value,
-        assetId: modal.querySelector('#tx-asset').value,
+        assetId: assetSelect.value,
         amount: parseFloat(modal.querySelector('#tx-amount').value),
         category: modal.querySelector('#tx-category').value.trim(),
         description: modal.querySelector('#tx-desc').value.trim()
       };
 
+      const bucketId = bucketSelect.value;
+      if (bucketId) tx.bucketId = bucketId;
+
       if (tx.type === 'transfer') {
-        tx.destinationAssetId = modal.querySelector('#tx-dest-asset').value;
+        tx.destinationAssetId = destAssetSelect.value;
+        const destBucketId = destBucketSelect.value;
+        if (destBucketId) tx.destinationBucketId = destBucketId;
       }
       if (tx.type === 'debt_payment') {
         tx.debtId = modal.querySelector('#tx-debt').value || null;
@@ -523,6 +584,7 @@ async function openEditDialog(id, onSuccess) {
 
   const assets = await Queries.getAssets();
   const debts = await Queries.getDebtsWithProgress();
+  const buckets = await Queries.getBuckets();
 
   const optionsHtml = assets.map(a => `<option value="${a.id}" ${tx.assetId === a.id ? 'selected' : ''}>${a.name}</option>`).join('');
   const destOptionsHtml = assets.map(a => `<option value="${a.id}" ${tx.destinationAssetId === a.id ? 'selected' : ''}>${a.name}</option>`).join('');
@@ -554,10 +616,24 @@ async function openEditDialog(id, onSuccess) {
         </select>
       </div>
 
+      <div class="form-group" id="bucket-group" style="display: none;">
+        <label class="form-label">Apartado de Origen</label>
+        <select id="tx-bucket" class="form-control">
+          <!-- Rellenado dinámicamente -->
+        </select>
+      </div>
+
       <div class="form-group" id="dest-asset-group" style="${tx.type === 'transfer' ? 'display: flex;' : 'display: none;'}">
         <label class="form-label">Activo de Destino</label>
         <select id="tx-dest-asset" class="form-control">
           ${destOptionsHtml}
+        </select>
+      </div>
+
+      <div class="form-group" id="dest-bucket-group" style="display: none;">
+        <label class="form-label">Apartado de Destino</label>
+        <select id="tx-dest-bucket" class="form-control">
+          <!-- Rellenado dinámicamente -->
         </select>
       </div>
 
@@ -593,16 +669,57 @@ async function openEditDialog(id, onSuccess) {
 
   DialogManager.open(dialogHtml, (modal) => {
     const typeSelect = modal.querySelector('#tx-type');
+    const assetSelect = modal.querySelector('#tx-asset');
+    const destAssetSelect = modal.querySelector('#tx-dest-asset');
+    const bucketGroup = modal.querySelector('#bucket-group');
+    const bucketSelect = modal.querySelector('#tx-bucket');
+    const destBucketGroup = modal.querySelector('#dest-bucket-group');
+    const destBucketSelect = modal.querySelector('#tx-dest-bucket');
     const destGroup = modal.querySelector('#dest-asset-group');
     const debtGroup = modal.querySelector('#debt-group');
     const cancelBtn = modal.querySelector('#cancel-edit-btn');
     const form = modal.querySelector('#edit-tx-form');
 
+    const updateBuckets = (initialValue) => {
+      const assetId = assetSelect.value;
+      const assetBuckets = buckets.filter(b => b.assetId === assetId);
+      if (assetBuckets.length > 0) {
+        bucketGroup.style.display = 'flex';
+        bucketSelect.innerHTML = '<option value="">Ninguno (Saldo general de la cuenta)</option>' + 
+          assetBuckets.map(b => `<option value="${b.id}" ${initialValue === b.id ? 'selected' : ''}>${b.name}</option>`).join('');
+      } else {
+        bucketGroup.style.display = 'none';
+        bucketSelect.value = '';
+      }
+    };
+
+    const updateDestBuckets = (initialValue) => {
+      const isTransfer = typeSelect.value === 'transfer';
+      const destAssetId = destAssetSelect.value;
+      const destAssetBuckets = buckets.filter(b => b.assetId === destAssetId);
+      if (isTransfer && destAssetBuckets.length > 0) {
+        destBucketGroup.style.display = 'flex';
+        destBucketSelect.innerHTML = '<option value="">Ninguno (Saldo general de la cuenta)</option>' + 
+          destAssetBuckets.map(b => `<option value="${b.id}" ${initialValue === b.id ? 'selected' : ''}>${b.name}</option>`).join('');
+      } else {
+        destBucketGroup.style.display = 'none';
+        destBucketSelect.value = '';
+      }
+    };
+
     typeSelect.addEventListener('change', () => {
       const type = typeSelect.value;
       destGroup.style.display = type === 'transfer' ? 'flex' : 'none';
       debtGroup.style.display = type === 'debt_payment' ? 'flex' : 'none';
+      updateDestBuckets();
     });
+
+    assetSelect.addEventListener('change', () => updateBuckets());
+    destAssetSelect.addEventListener('change', () => updateDestBuckets());
+
+    // Initial check using current tx values
+    updateBuckets(tx.bucketId);
+    updateDestBuckets(tx.destinationBucketId);
 
     cancelBtn.addEventListener('click', () => DialogManager.close());
 
@@ -612,16 +729,22 @@ async function openEditDialog(id, onSuccess) {
       const updatedTx = {
         date: modal.querySelector('#tx-date').value,
         type: typeSelect.value,
-        assetId: modal.querySelector('#tx-asset').value,
+        assetId: assetSelect.value,
         amount: parseFloat(modal.querySelector('#tx-amount').value),
         category: modal.querySelector('#tx-category').value.trim(),
         description: modal.querySelector('#tx-desc').value.trim()
       };
 
+      const bucketId = bucketSelect.value;
+      updatedTx.bucketId = bucketId || null;
+
       if (updatedTx.type === 'transfer') {
-        updatedTx.destinationAssetId = modal.querySelector('#tx-dest-asset').value;
+        updatedTx.destinationAssetId = destAssetSelect.value;
+        const destBucketId = destBucketSelect.value;
+        updatedTx.destinationBucketId = destBucketId || null;
       } else {
         updatedTx.destinationAssetId = null;
+        updatedTx.destinationBucketId = null;
       }
       
       if (updatedTx.type === 'debt_payment') {
