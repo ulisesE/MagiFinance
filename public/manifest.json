@@ -1,0 +1,30 @@
+{
+  "name": "MagiFinance - Finanzas Personales Offline",
+  "short_name": "MagiFinance",
+  "description": "Progressive Web App offline de contabilidad y patrimonio personal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1210",
+  "theme_color": "#006c47",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

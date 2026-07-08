@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MagiFinance - Finanzas Personales Offline</title>
+    
+    <!-- Meta tags de PWA -->
+    <meta name="theme-color" content="#006c47" id="theme-color-meta" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MagiFinance" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+  </head>
+  <body class="dark-theme"> <!-- Default dark-theme -->
+    <div id="app">
+      <!-- Header -->
+      <header>
+        <div class="flex-row align-center gap-sm">
+          <span class="icon" style="color: var(--md-sys-color-primary);">wallet</span>
+          <span class="text-title-large" style="font-weight: 700;">MagiFinance</span>
+        </div>
+        <button id="theme-toggle" class="btn btn-outlined" style="padding: 6px 12px; font-size: 0.875rem;">
+          <span class="icon">light_mode</span>
+        </button>
+      </header>
+
+      <!-- Sidebar (Desktop only) -->
+      <aside class="sidebar">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-brand">
+            <span class="icon">wallet</span>
+            MagiFinance
+          </div>
+          <span class="sidebar-logo-version">v1.0.0</span>
+        </div>
+        <nav class="flex-column gap-sm">
+          <a href="#/dashboard" class="sidebar-item">
+            <span class="icon">dashboard</span>
+            Dashboard
+          </a>
+          <a href="#/analytics" class="sidebar-item">
+            <span class="icon">monitoring</span>
+            Analíticas
+          </a>
+          <a href="#/transactions" class="sidebar-item">
+            <span class="icon">receipt_long</span>
+            Transacciones
+          </a>
+          <a href="#/assets" class="sidebar-item">
+            <span class="icon">savings</span>
+            Activos (Assets)
+          </a>
+          <a href="#/debts" class="sidebar-item">
+            <span class="icon">credit_card_heart</span>
+            Deudas
+          </a>
+          <a href="#/goals" class="sidebar-item">
+            <span class="icon">track_changes</span>
+            Metas
+          </a>
+          <a href="#/settings" class="sidebar-item" style="margin-top: auto;">
+            <span class="icon">settings</span>
+            Configuración
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main Content Container -->
+      <main id="main-content">
+        <!-- Renderizado dinámico de la página -->
+      </main>
+
+      <!-- Bottom Nav (Mobile only) -->
+      <nav class="bottom-nav">
+        <a href="#/dashboard" class="nav-item">
+          <div class="nav-icon-container">
+            <span class="icon">dashboard</span>
+          </div>
+          Dashboard
+        </a>
+        <a href="#/analytics" class="nav-item">
+          <div class="nav-icon-container">
+            <span class="icon">monitoring</span>
+          </div>
+          Analíticas
+        </a>
+        <a href="#/transactions" class="nav-item">
+          <div class="nav-icon-container">
+            <span class="icon">receipt_long</span>
+          </div>
+          Movimientos
+        </a>
+        <a href="#/settings" class="nav-item">
+          <div class="nav-icon-container">
+            <span class="icon">settings</span>
+          </div>
+          Config
+        </a>
+      </nav>
+    </div>
+
+    <!-- Contenedor global de Diálogos / Modales -->
+    <div id="global-dialog-overlay" class="dialog-overlay">
+      <div id="global-dialog" class="dialog">
+        <!-- Se rellena dinámicamente -->
+      </div>
+    </div>
+
+    <!-- Cargar estilos globales -->
+    <script type="module">
+      import './src/styles/variables.css';
+      import './src/styles/main.css';
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
