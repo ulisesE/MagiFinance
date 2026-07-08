@@ -4,7 +4,7 @@ export default defineConfig({
   // Establecer ruta base relativa para que funcione en cualquier subcarpeta de GitHub Pages
   base: './',
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
     assetsDir: 'assets',
     sourcemap: true
   },
