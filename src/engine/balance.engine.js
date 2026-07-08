@@ -16,6 +16,15 @@ export const BalanceEngine = {
    * @returns {Object} Balances consolidados y métricas
    */
   calculateState(seedAssets, seedBuckets, snapshots, transactions, targetDate) {
+    // Compatibilidad retrospectiva con la firma antigua de 4 parámetros:
+    // (seedAssets, snapshots, transactions, targetDate)
+    if (targetDate === undefined && typeof transactions === 'string') {
+      targetDate = transactions;
+      transactions = snapshots;
+      snapshots = seedBuckets;
+      seedBuckets = [];
+    }
+
     // 1. Encontrar el último snapshot en o antes de la fecha objetivo
     const sortedSnapshots = [...snapshots]
       .filter(s => s.date <= targetDate)

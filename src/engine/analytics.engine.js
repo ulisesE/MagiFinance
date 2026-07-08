@@ -87,7 +87,7 @@ export const AnalyticsEngine = {
       const monthEndStr = targetMonth.endOf('month').format('YYYY-MM-DD');
       const monthLabel = targetMonth.format('MMM YYYY');
 
-      const state = BalanceEngine.calculateState(seedAssets, snapshots, transactions, monthEndStr);
+      const state = BalanceEngine.calculateState(seedAssets, [], snapshots, transactions, monthEndStr);
 
       history.push({
         monthLabel,
