@@ -24,7 +24,7 @@ export async function renderDashboard(container) {
 
   try {
     const data = await Queries.getDashboardData();
-    const { summary, previousNetWorth, currentMonthStats, insights, history } = data;
+    const { summary, previousNetWorth, currentMonthStats, insights, history, txs } = data;
     const snapshotsCount = await db.snapshots.count();
 
     // Verificar si la base de datos está vacía (onboarding)

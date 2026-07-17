@@ -527,7 +527,8 @@ export const Queries = {
       previousNetWorth: prevSnapshotSummary ? prevSnapshotSummary.netWorth : summary.netWorth,
       currentMonthStats: currentStats,
       insights,
-      history: history6Months
+      history: history6Months,
+      txs
     };
   }
 };

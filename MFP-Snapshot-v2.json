@@ -3,14 +3,12 @@
   "timestamp": 1784332800,
   "date": "2026-07-17",
   "metadata": {
-    "currency": "MXN",
-    "appVersion": "1.2.0",
-    "engineVersion": "2.0"
+    "currency": "MXN"
   },
   "assets": [
     {
       "id": "bbva",
-      "name": "BBVA Débito",
+      "name": "BBVA DÃ©bito",
       "type": "liquid",
       "balance": 33.00
     },
@@ -29,13 +27,13 @@
     {
       "id": "efectivo-cartera",
       "name": "Efectivo en Cartera",
-      "type": "cash",
+      "type": "liquid",
       "balance": 400.00
     },
     {
       "id": "efectivo-reservado",
       "name": "Efectivo Reservado",
-      "type": "cash",
+      "type": "liquid",
       "balance": 2000.00
     }
   ],
@@ -67,7 +65,7 @@
     {
       "id": "bucket-diversion",
       "assetId": "bbva-apartados",
-      "name": "Diversión",
+      "name": "DiversiÃ³n",
       "balance": 500.00
     },
     {
@@ -90,14 +88,14 @@
       "type": "credit_card",
       "balance": 25518.13,
       "statementBalance": 12722.59,
-      "paymentDueDate": "2026-08-05",
-      "statementDate": "2026-07-16"
+      "statementDate": "2026-07-16",
+      "paymentDueDate": "2026-08-05"
     }
   ],
   "debts": [
     {
       "id": "credito-nomina-bbva",
-      "name": "Crédito de Nómina BBVA",
+      "name": "CrÃ©dito de NÃ³mina BBVA",
       "amount": 0.00
     },
     {
