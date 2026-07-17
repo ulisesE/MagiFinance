@@ -1,98 +1,103 @@
 {
   "schema": "MFP-Snapshot-v2",
-  "timestamp": 1783468800,
-  "date": "2026-07-08",
-
+  "timestamp": 1784332800,
+  "date": "2026-07-17",
   "metadata": {
     "currency": "MXN",
-    "appVersion": "1.2.0"
+    "appVersion": "1.2.0",
+    "engineVersion": "2.0"
   },
-
   "assets": [
     {
       "id": "bbva",
-      "name": "BBVA DÃ©bito",
+      "name": "BBVA Débito",
       "type": "liquid",
-      "balance": 2784.26
+      "balance": 33.00
+    },
+    {
+      "id": "bbva-apartados",
+      "name": "BBVA Apartados",
+      "type": "savings",
+      "balance": 4140.14
     },
     {
       "id": "nu",
       "name": "Nu Cajita",
       "type": "savings",
-      "balance": 25018.06
+      "balance": 25849.72
     },
     {
       "id": "efectivo-cartera",
       "name": "Efectivo en Cartera",
       "type": "cash",
-      "balance": 700.00
+      "balance": 400.00
     },
     {
       "id": "efectivo-reservado",
       "name": "Efectivo Reservado",
       "type": "cash",
-      "balance": 3000.00
+      "balance": 2000.00
     }
   ],
-
   "buckets": [
     {
       "id": "bucket-ahorro",
-      "assetId": "bbva",
+      "assetId": "bbva-apartados",
       "name": "Ahorro",
-      "balance": 1028.26
+      "balance": 1170.14
     },
     {
       "id": "bucket-emergencia",
-      "assetId": "bbva",
+      "assetId": "bbva-apartados",
       "name": "Emergencia",
       "balance": 500.00
     },
     {
       "id": "bucket-deudas",
-      "assetId": "bbva",
+      "assetId": "bbva-apartados",
       "name": "Deudas",
-      "balance": 246.00
+      "balance": 500.00
     },
     {
       "id": "bucket-gastos",
-      "assetId": "bbva",
+      "assetId": "bbva-apartados",
       "name": "Gastos Fijos",
-      "balance": 120.00
+      "balance": 1100.00
     },
     {
       "id": "bucket-diversion",
-      "assetId": "bbva",
-      "name": "DiversiÃ³n",
-      "balance": 0.00
+      "assetId": "bbva-apartados",
+      "name": "Diversión",
+      "balance": 500.00
     },
     {
       "id": "bucket-impulsivas",
-      "assetId": "bbva",
+      "assetId": "bbva-apartados",
       "name": "Compras Impulsivas",
-      "balance": 90.00
+      "balance": 370.00
     },
     {
       "id": "bucket-metas",
-      "assetId": "bbva",
+      "assetId": "bbva-apartados",
       "name": "Metas",
-      "balance": 800.00
+      "balance": 0.00
     }
   ],
-
   "liabilities": [
     {
       "id": "bbva-tdc",
       "name": "Tarjeta BBVA",
       "type": "credit_card",
-      "balance": 19020.87
+      "balance": 25518.13,
+      "statementBalance": 12722.59,
+      "paymentDueDate": "2026-08-05",
+      "statementDate": "2026-07-16"
     }
   ],
-
   "debts": [
     {
       "id": "credito-nomina-bbva",
-      "name": "CrÃ©dito de NÃ³mina BBVA",
+      "name": "Crédito de Nómina BBVA",
       "amount": 0.00
     },
     {
@@ -101,13 +106,12 @@
       "amount": 2000.00
     }
   ],
-
   "goals": [
     {
       "id": "ahorro-general",
       "name": "Ahorro General",
       "targetAmount": 10000.00,
-      "currentAmount": 1028.26
+      "currentAmount": 1170.14
     },
     {
       "id": "fondo-emergencia",
@@ -119,7 +123,7 @@
       "id": "metas",
       "name": "Metas",
       "targetAmount": 5000.00,
-      "currentAmount": 800.00
+      "currentAmount": 0.00
     }
   ]
 }

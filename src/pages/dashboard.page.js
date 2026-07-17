@@ -102,21 +102,82 @@ export async function renderDashboard(container) {
       return;
     }
 
-    // Calcular variación
-    const nwVariation = summary.netWorth - previousNetWorth;
-    const nwVariationPercent = previousNetWorth > 0 ? (nwVariation / previousNetWorth) * 100 : 0;
-    const variationClass = nwVariation >= 0 ? 'text-income' : 'text-expense';
-    const variationIcon = nwVariation >= 0 ? 'trending_up' : 'trending_down';
-    const variationText = `${nwVariation >= 0 ? '+' : ''}$${nwVariation.toLocaleString()} (${nwVariationPercent.toFixed(1)}% vs mes anterior)`;
+    // Obtener los datos del snapshot anterior
+    const prevSnapshotSummary = data.prevSnapshotSummary;
+
+    // 1. Variación de Patrimonio Neto
+    const nwVariation = prevSnapshotSummary ? summary.netWorth - prevSnapshotSummary.netWorth : 0;
+    const nwVariationPercent = (prevSnapshotSummary && prevSnapshotSummary.netWorth > 0) ? (nwVariation / prevSnapshotSummary.netWorth) * 100 : 0;
+    const nwVariationClass = nwVariation >= 0 ? 'text-income' : 'text-expense';
+    const nwVariationIcon = nwVariation >= 0 ? 'trending_up' : 'trending_down';
+    const nwVariationText = prevSnapshotSummary 
+      ? `${nwVariation >= 0 ? '+' : ''}$${nwVariation.toLocaleString()} (${nwVariationPercent >= 0 ? '+' : ''}${nwVariationPercent.toFixed(1)}% vs snapshot anterior)`
+      : 'Sin snapshot anterior';
+
+    // 2. Variación de Activos Totales
+    const assetsVariation = prevSnapshotSummary ? summary.assetsTotal - prevSnapshotSummary.assetsTotal : 0;
+    const assetsVariationPercent = (prevSnapshotSummary && prevSnapshotSummary.assetsTotal > 0) ? (assetsVariation / prevSnapshotSummary.assetsTotal) * 100 : 0;
+    const assetsVariationClass = assetsVariation >= 0 ? 'text-income' : 'text-expense';
+    const assetsVariationIcon = assetsVariation >= 0 ? 'trending_up' : 'trending_down';
+    const assetsVariationText = prevSnapshotSummary
+      ? `${assetsVariation >= 0 ? '+' : ''}$${assetsVariation.toLocaleString()} (${assetsVariationPercent >= 0 ? '+' : ''}${assetsVariationPercent.toFixed(1)}% vs snapshot anterior)`
+      : 'Sin snapshot anterior';
+
+    // 3. Variación de Pasivos Totales (un decremento de deuda es positivo/verde)
+    const liabilitiesVariation = prevSnapshotSummary ? summary.liabilitiesTotal - prevSnapshotSummary.liabilitiesTotal : 0;
+    const liabilitiesVariationPercent = (prevSnapshotSummary && prevSnapshotSummary.liabilitiesTotal > 0) ? (liabilitiesVariation / prevSnapshotSummary.liabilitiesTotal) * 100 : 0;
+    const liabilitiesVariationClass = liabilitiesVariation <= 0 ? 'text-income' : 'text-expense';
+    const liabilitiesVariationIcon = liabilitiesVariation <= 0 ? 'trending_down' : 'trending_up';
+    const liabilitiesVariationText = prevSnapshotSummary
+      ? `${liabilitiesVariation >= 0 ? '+' : ''}$${liabilitiesVariation.toLocaleString()} (${liabilitiesVariationPercent >= 0 ? '+' : ''}${liabilitiesVariationPercent.toFixed(1)}% vs snapshot anterior)`
+      : 'Sin snapshot anterior';
 
     // Calcular KPIs extendidos de salud financiera
-    const totalDebts = summary.debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.remainingAmount, 0);
+    // 1. Tarjetas de crédito (próximos pagos reales)
+    let totalTdcPayment = 0;
+    let closestDueDate = null;
+
+    summary.liabilities.forEach(l => {
+      if (l.type === 'liability_credit') {
+        const payments = txs.filter(t => 
+          t.date > (l.statementDate || '0000-00-00') &&
+          t.date <= dayjs().format('YYYY-MM-DD') &&
+          (
+            (t.type === 'transfer' && t.destinationAssetId === l.id) ||
+            ((t.type === 'income' || t.type === 'debt_payment') && t.assetId === l.id)
+          )
+        );
+        const totalPaid = payments.reduce((sum, t) => sum + t.amount, 0);
+        const remainingToAvoidInterest = Math.max(0, (l.statementBalance || 0) - totalPaid);
+        totalTdcPayment += remainingToAvoidInterest;
+
+        if (remainingToAvoidInterest > 0 && l.paymentDueDate) {
+          if (!closestDueDate || l.paymentDueDate < closestDueDate) {
+            closestDueDate = l.paymentDueDate;
+          }
+        }
+      }
+    });
+
+    // 2. Préstamos / Deudas
     const activeDebts = summary.debts.filter(d => !d.isPaid);
-    const nextPaymentAmount = activeDebts.reduce((sum, d) => {
+    const totalDebts = activeDebts.reduce((sum, d) => sum + d.remainingAmount, 0);
+    const loanPaymentAmount = activeDebts.reduce((sum, d) => {
       const matches = d.notes ? d.notes.match(/pago:\s*\$?([\d,.]+)/i) : null;
       if (matches) return sum + parseFloat(matches[1].replace(/,/g, ''));
       return sum + (d.remainingAmount * 0.05);
     }, 0);
+
+    const nextPaymentAmount = totalTdcPayment + loanPaymentAmount;
+    let paymentDueDateLabel = 'Sin pagos pendientes';
+    if (nextPaymentAmount > 0) {
+      if (closestDueDate) {
+        paymentDueDateLabel = `Límite: ${dayjs(closestDueDate).format('DD [de] MMMM')}`;
+      } else {
+        paymentDueDateLabel = 'Cuota sugerida mensual';
+      }
+    }
+
     const activeGoals = summary.goals.filter(g => !g.isCompleted);
     const totalGoalsSaved = summary.goals.reduce((sum, g) => sum + g.currentAmount, 0);
 
@@ -130,24 +191,55 @@ export async function renderDashboard(container) {
     container.innerHTML = `
       <div class="flex-column gap-lg">
         
-        <!-- Welcome banner -->
-        <div class="flex-row justify-between align-center card card-glass" style="padding: 24px; border-radius: var(--border-radius-xl);">
+        <!-- Dashboard Header & Top Actions -->
+        <div class="flex-row justify-between align-center card card-glass" style="padding: 20px 24px; border-radius: var(--border-radius-xl);">
           <div class="flex-column gap-xs">
-            <span class="text-label-large" style="color: var(--md-sys-color-primary);">RESUMEN GENERAL</span>
-            <h1 class="text-display-small" style="font-weight: 800;">$${summary.netWorth.toLocaleString()}</h1>
-            <div class="flex-row align-center gap-xs ${variationClass}" style="font-weight: 500; font-size: 0.875rem;">
-              <span class="icon" style="font-size: 18px;">${variationIcon}</span>
-              <span>${variationText}</span>
-            </div>
+            <span class="text-label-large" style="color: var(--md-sys-color-primary);">LIBRO CONTABLE</span>
+            <h1 class="text-headline-medium" style="font-weight: 800; margin: 0;">MagiFinance Dashboard</h1>
           </div>
           <div class="flex-row gap-sm">
             <button id="quick-import-json" class="btn btn-outlined">
-              <span class="icon">upload_file</span> Importar JSON
+              <span class="icon">upload_file</span> Importar Snapshot
             </button>
             <button id="quick-add-tx" class="btn btn-primary">
               <span class="icon">add</span> Nuevo Movimiento
             </button>
           </div>
+        </div>
+
+        <!-- Three Columns: Assets, Liabilities, Net Worth -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+          
+          <!-- Activos Totales Card -->
+          <div class="card flex-column gap-xs" style="background-color: var(--md-sys-color-surface-variant); border: none;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Activos Totales</span>
+            <h2 class="text-display-small" style="font-weight: 800; color: var(--md-sys-color-on-background); margin: 4px 0;">$${summary.assetsTotal.toLocaleString()}</h2>
+            <div class="flex-row align-center gap-xs ${assetsVariationClass}" style="font-weight: 500; font-size: 0.825rem;">
+              <span class="icon" style="font-size: 16px;">${assetsVariationIcon}</span>
+              <span>${assetsVariationText}</span>
+            </div>
+          </div>
+
+          <!-- Pasivos Totales Card -->
+          <div class="card flex-column gap-xs" style="background-color: var(--md-sys-color-surface-variant); border: none;">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Pasivos Totales</span>
+            <h2 class="text-display-small" style="font-weight: 800; color: var(--md-sys-color-on-background); margin: 4px 0;">$${summary.liabilitiesTotal.toLocaleString()}</h2>
+            <div class="flex-row align-center gap-xs ${liabilitiesVariationClass}" style="font-weight: 500; font-size: 0.825rem;">
+              <span class="icon" style="font-size: 16px;">${liabilitiesVariationIcon}</span>
+              <span>${liabilitiesVariationText}</span>
+            </div>
+          </div>
+
+          <!-- Patrimonio Neto Card -->
+          <div class="card flex-column gap-xs" style="background-color: var(--md-sys-color-primary-container); border: 1px solid var(--md-sys-color-primary);">
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-primary-container);">Patrimonio Neto</span>
+            <h2 class="text-display-small" style="font-weight: 800; color: var(--md-sys-color-primary); margin: 4px 0;">$${summary.netWorth.toLocaleString()}</h2>
+            <div class="flex-row align-center gap-xs ${nwVariationClass}" style="font-weight: 500; font-size: 0.825rem;">
+              <span class="icon" style="font-size: 16px;">${nwVariationIcon}</span>
+              <span>${nwVariationText}</span>
+            </div>
+          </div>
+
         </div>
 
         <!-- KPIs Grid (MD3 Cards) -->
@@ -178,9 +270,9 @@ export async function renderDashboard(container) {
           </div>
 
           <div id="kpi-nextpayment" class="card flex-column gap-xs" style="cursor: pointer;">
-            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Próximo Pago Est.</span>
+            <span class="text-label-medium" style="color: var(--md-sys-color-on-surface-variant);">Próximo Pago Real</span>
             <span class="text-headline-small" style="font-weight: 700; color: var(--color-expense);">$${nextPaymentAmount.toLocaleString()}</span>
-            <span class="text-label-small" style="color: var(--md-sys-color-outline);">Cuota sugerida mensual</span>
+            <span class="text-label-small" style="color: var(--md-sys-color-outline);">${paymentDueDateLabel}</span>
           </div>
 
           <div id="kpi-emergency" class="card flex-column gap-xs" style="cursor: pointer;">

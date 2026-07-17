@@ -28,8 +28,10 @@ export async function renderAssets(container) {
         case 'savings': return 'Ahorro / Cajitas';
         case 'investment': return 'Inversiones';
         case 'fixed': return 'Activos Fijos (Bienes)';
+        case 'receivable': return 'Cuenta por Cobrar (Activo)';
         case 'liability_credit': return 'Pasivo: Tarjeta de Crédito';
         case 'liability_debt': return 'Pasivo: Préstamo / Deuda';
+        case 'liability_payable': return 'Pasivo: Cuenta por Pagar';
         default: return type;
       }
     };
@@ -190,8 +192,10 @@ export function openAddAssetDialog(onSuccess) {
           <option value="savings">Ahorro programado (Cajitas / Plazo)</option>
           <option value="investment">Inversión (Bolsa, Cripto)</option>
           <option value="fixed">Activo Fijo (Bienes raíces, Vehículos)</option>
+          <option value="receivable">Cuenta por Cobrar (Activo)</option>
           <option value="liability_credit">Pasivo: Tarjeta de Crédito</option>
           <option value="liability_debt">Pasivo: Préstamo / Hipoteca</option>
+          <option value="liability_payable">Pasivo: Cuenta por Pagar</option>
         </select>
       </div>
 
@@ -259,8 +263,10 @@ async function openEditAssetDialog(id, onSuccess) {
           <option value="savings" ${asset.type === 'savings' ? 'selected' : ''}>Ahorro programado (Cajitas / Plazo)</option>
           <option value="investment" ${asset.type === 'investment' ? 'selected' : ''}>Inversión (Bolsa, Cripto)</option>
           <option value="fixed" ${asset.type === 'fixed' ? 'selected' : ''}>Activo Fijo (Bienes raíces, Vehículos)</option>
+          <option value="receivable" ${asset.type === 'receivable' ? 'selected' : ''}>Cuenta por Cobrar (Activo)</option>
           <option value="liability_credit" ${asset.type === 'liability_credit' ? 'selected' : ''}>Pasivo: Tarjeta de Crédito</option>
           <option value="liability_debt" ${asset.type === 'liability_debt' ? 'selected' : ''}>Pasivo: Préstamo / Hipoteca</option>
+          <option value="liability_payable" ${asset.type === 'liability_payable' ? 'selected' : ''}>Pasivo: Cuenta por Pagar</option>
         </select>
       </div>
 

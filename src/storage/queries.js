@@ -104,6 +104,8 @@ export const Queries = {
       assets: realAssets,
       buckets: engineState.buckets,
       liabilities,
+      assetsTotal: engineState.assetsTotal,
+      liabilitiesTotal: engineState.liabilitiesTotal,
       netWorth: engineState.netWorth,
       liquidity: engineState.liquidity,
       reserved: engineState.reserved,
@@ -357,6 +359,31 @@ export const Queries = {
       }
     }
 
+    // 2.2 Insertar pasivos incluidos si no existen
+    if (snapshotToImport.liabilities) {
+      for (const liability of snapshotToImport.liabilities) {
+        const exists = await db.assets.get(liability.id);
+        if (!exists) {
+          let dbType = liability.type;
+          if (dbType === 'credit_card') dbType = 'liability_credit';
+          else if (dbType === 'debt' || dbType === 'loan') dbType = 'liability_debt';
+          else if (dbType === 'payable') dbType = 'liability_payable';
+          else if (!dbType?.startsWith('liability_')) {
+            dbType = 'liability_' + dbType;
+          }
+          await db.assets.add({
+            id: liability.id,
+            name: liability.name,
+            type: dbType,
+            isActive: true,
+            statementBalance: liability.statementBalance || 0,
+            paymentDueDate: liability.paymentDueDate || null,
+            statementDate: liability.statementDate || null
+          });
+        }
+      }
+    }
+
     // 3. Insertar apartados (buckets) incluidos si no existen
     if (snapshotToImport.buckets) {
       for (const bucket of snapshotToImport.buckets) {
@@ -455,12 +482,21 @@ export const Queries = {
 
     // 1. Obtener estados de balances unificados (hoy vs hace un mes)
     const summary = await this.getFinancialSummary(today.format('YYYY-MM-DD'));
+    
+    // Obtener comparación con el snapshot anterior
+    const dbSnapshots = await db.snapshots.toArray();
+    const sortedSnapshots = dbSnapshots.sort((a, b) => b.date.localeCompare(a.date));
+    
+    let prevSnapshotSummary = null;
+    if (sortedSnapshots.length >= 2) {
+      prevSnapshotSummary = await this.getFinancialSummary(sortedSnapshots[1].date);
+    }
+
     const summaryMonthAgo = await this.getFinancialSummary(today.subtract(1, 'month').format('YYYY-MM-DD'));
 
     // 2. Obtener todas las transacciones
     const txs = await db.transactions.toArray();
     const assets = await db.assets.toArray();
-    const dbSnapshots = await db.snapshots.toArray();
     const snapshots = dbSnapshots.map(s => ({
       ...s,
       ...s.rawJson
@@ -475,8 +511,11 @@ export const Queries = {
       currentStats,
       prevStats,
       summary.netWorth,
-      summaryMonthAgo.netWorth,
-      summary.liquidity
+      prevSnapshotSummary ? prevSnapshotSummary.netWorth : summary.netWorth,
+      summary.liquidity,
+      summary.liabilities,
+      summary.debts,
+      today.format('YYYY-MM-DD')
     );
 
     // 5. Historial de patrimonio de los últimos 6 meses para minigráfico
@@ -484,7 +523,8 @@ export const Queries = {
 
     return {
       summary,
-      previousNetWorth: summaryMonthAgo.netWorth,
+      prevSnapshotSummary,
+      previousNetWorth: prevSnapshotSummary ? prevSnapshotSummary.netWorth : summary.netWorth,
       currentMonthStats: currentStats,
       insights,
       history: history6Months

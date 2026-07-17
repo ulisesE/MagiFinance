@@ -90,7 +90,14 @@ export const JsonEngine = {
       json.assets.forEach((asset, idx) => {
         if (!asset.id) errors.push(`Activo en posición ${idx}: Falta el ID obligatorio.`);
         if (!asset.name) errors.push(`Activo "${asset.id || idx}": Falta el nombre.`);
-        if (!asset.type) errors.push(`Activo "${asset.id || idx}": Falta el tipo (liquid, savings, investment, fixed).`);
+        if (!asset.type) {
+          errors.push(`Activo "${asset.id || idx}": Falta el tipo (liquid, savings, investment, fixed, receivable).`);
+        } else {
+          const allowedTypes = ['liquid', 'savings', 'investment', 'fixed', 'receivable', 'liability_credit', 'liability_debt', 'liability_payable'];
+          if (!allowedTypes.includes(asset.type) && !asset.type.startsWith('liability_')) {
+            errors.push(`Activo "${asset.id || idx}": Tipo "${asset.type}" no reconocido.`);
+          }
+        }
         if (typeof asset.balance !== 'number') errors.push(`Activo "${asset.id || idx}": El balance debe ser un número.`);
       });
     }
@@ -103,6 +110,17 @@ export const JsonEngine = {
         if (!bucket.name) errors.push(`Apartado "${bucket.id || idx}": Falta el nombre.`);
         if (!bucket.assetId) errors.push(`Apartado "${bucket.id || idx}": Falta el assetId del activo asociado.`);
         if (typeof bucket.balance !== 'number') errors.push(`Apartado "${bucket.id || idx}": El saldo debe ser un número.`);
+      });
+    }
+
+    if (json.liabilities && !Array.isArray(json.liabilities)) {
+      errors.push('El campo "liabilities" debe ser un arreglo si está presente.');
+    } else if (json.liabilities) {
+      json.liabilities.forEach((lib, idx) => {
+        if (!lib.id) errors.push(`Pasivo en posición ${idx}: Falta el ID obligatorio.`);
+        if (!lib.name) errors.push(`Pasivo "${lib.id || idx}": Falta el nombre.`);
+        if (!lib.type) errors.push(`Pasivo "${lib.id || idx}": Falta el tipo (credit_card, debt, loan, payable).`);
+        if (typeof lib.balance !== 'number') errors.push(`Pasivo "${lib.id || idx}": El balance debe ser un número.`);
       });
     }
 

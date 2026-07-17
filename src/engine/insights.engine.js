@@ -2,6 +2,8 @@
  * @fileoverview Motor de Insights basado en reglas y heurísticas financieras.
  */
 
+import dayjs from 'dayjs';
+
 export const InsightsEngine = {
   /**
    * Genera observaciones y consejos financieros basados en el estado actual.
@@ -10,9 +12,13 @@ export const InsightsEngine = {
    * @param {number} netWorth Patrimonio neto actual.
    * @param {number} prevNetWorth Patrimonio neto del mes anterior.
    * @param {number} liquidAssets Activos líquidos disponibles.
+   * @param {Array} [liabilities] Arreglo de pasivos actuales.
+   * @param {Array} [debts] Arreglo de deudas activas.
+   * @param {string} [targetDate] Fecha actual para evaluar vencimientos.
+   * @param {Array} [transactions] Historial de transacciones para calcular abonos a tarjetas.
    * @returns {Array} Colección de observaciones [{ type, title, description }]
    */
-  generate(currentMonth, prevMonth, netWorth, prevNetWorth, liquidAssets) {
+  generate(currentMonth, prevMonth, netWorth, prevNetWorth, liquidAssets, liabilities = [], debts = [], targetDate = '', transactions = []) {
     const insights = [];
 
     // Rule 1: Ahorro positivo vs negativo
@@ -61,7 +67,7 @@ export const InsightsEngine = {
         insights.push({
           type: 'success',
           title: 'Crecimiento de Patrimonio',
-          description: `Tu patrimonio neto aumentó un ${nwDiff.toFixed(1)}% este mes.`
+          description: `Tu patrimonio neto aumentó un ${nwDiff.toFixed(1)}% desde el snapshot anterior.`
         });
       } else if (nwDiff < 0) {
         insights.push({
@@ -92,6 +98,63 @@ export const InsightsEngine = {
           type: 'warning',
           title: 'Fondo de Emergencia Bajo',
           description: `Tus reservas líquidas cubren menos de 3 meses de gastos (${monthsCovered.toFixed(1)} meses). Prioriza capitalizar este fondo.`
+        });
+      }
+    }
+
+    // Rule 5: Vencimiento de Tarjeta de Crédito Cercano
+    let totalTdcRemainingPayment = 0;
+    if (targetDate && liabilities.length > 0) {
+      const todayDate = dayjs(targetDate);
+      liabilities.forEach(l => {
+        if (l.type === 'liability_credit') {
+          // Calcular el saldo restante para no generar intereses posterior al corte
+          const payments = transactions.filter(t => 
+            t.date > (l.statementDate || '0000-00-00') &&
+            t.date <= targetDate &&
+            (
+              (t.type === 'transfer' && t.destinationAssetId === l.id) ||
+              ((t.type === 'income' || t.type === 'debt_payment') && t.assetId === l.id)
+            )
+          );
+          const totalPaid = payments.reduce((sum, t) => sum + t.amount, 0);
+          const remainingToAvoidInterest = Math.max(0, (l.statementBalance || 0) - totalPaid);
+          totalTdcRemainingPayment += remainingToAvoidInterest;
+
+          if (remainingToAvoidInterest > 0 && l.paymentDueDate) {
+            const dueDate = dayjs(l.paymentDueDate);
+            const diffDays = dueDate.diff(todayDate, 'day');
+            if (diffDays >= 0 && diffDays <= 7) {
+              insights.push({
+                type: 'warning',
+                title: 'Vencimiento de Tarjeta Cercano',
+                description: `Tu tarjeta "${l.name}" tiene un pago pendiente para no generar intereses de $${remainingToAvoidInterest.toLocaleString()} que vence en ${diffDays} días (${l.paymentDueDate}).`
+              });
+            }
+          }
+        }
+      });
+    }
+
+    // Rule 6: Riesgo de Liquidez (TDC vs Efectivo)
+    if (totalTdcRemainingPayment > liquidAssets) {
+      insights.push({
+        type: 'warning',
+        title: 'Riesgo de Liquidez',
+        description: `El pago para no generar intereses de tus tarjetas ($${totalTdcRemainingPayment.toLocaleString()}) supera tu Liquidez Real ($${liquidAssets.toLocaleString()}). Evita comprometer más efectivo.`
+      });
+    }
+
+    // Rule 7: Endeudamiento Elevado
+    const totalLiabilitiesSum = liabilities.reduce((sum, l) => sum + Math.abs(l.balance), 0);
+    const calculatedAssetsTotal = netWorth + totalLiabilitiesSum;
+    if (calculatedAssetsTotal > 0) {
+      const debtRatio = (totalLiabilitiesSum / calculatedAssetsTotal) * 100;
+      if (debtRatio > 40) {
+        insights.push({
+          type: 'warning',
+          title: 'Alto Nivel de Endeudamiento',
+          description: `Tus pasivos representan el ${debtRatio.toFixed(0)}% de tus activos totales ($${calculatedAssetsTotal.toLocaleString()}). Te recomendamos amortizar deudas.`
         });
       }
     }

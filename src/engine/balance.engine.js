@@ -77,6 +77,44 @@ export const BalanceEngine = {
         });
       }
 
+      if (latestSnapshot.liabilities) {
+        latestSnapshot.liabilities.forEach(snapLiability => {
+          const existing = assetsMap.get(snapLiability.id);
+          let dbType = snapLiability.type;
+          if (dbType === 'credit_card') dbType = 'liability_credit';
+          else if (dbType === 'debt' || dbType === 'loan') dbType = 'liability_debt';
+          else if (dbType === 'payable') dbType = 'liability_payable';
+          else if (!dbType?.startsWith('liability_')) {
+            dbType = 'liability_' + dbType;
+          }
+
+          const balanceVal = -Math.abs(snapLiability.balance || 0);
+
+          if (existing) {
+            assetsMap.set(snapLiability.id, {
+              ...existing,
+              name: snapLiability.name || existing.name,
+              type: dbType || existing.type,
+              balance: balanceVal,
+              statementBalance: snapLiability.statementBalance || 0,
+              paymentDueDate: snapLiability.paymentDueDate || null,
+              statementDate: snapLiability.statementDate || null
+            });
+          } else {
+            assetsMap.set(snapLiability.id, {
+              id: snapLiability.id,
+              name: snapLiability.name,
+              type: dbType,
+              isActive: true,
+              balance: balanceVal,
+              statementBalance: snapLiability.statementBalance || 0,
+              paymentDueDate: snapLiability.paymentDueDate || null,
+              statementDate: snapLiability.statementDate || null
+            });
+          }
+        });
+      }
+
       if (latestSnapshot.buckets) {
         latestSnapshot.buckets.forEach(snapBucket => {
           const existing = bucketsMap.get(snapBucket.id);
@@ -153,15 +191,21 @@ export const BalanceEngine = {
         liabilitiesTotal += Math.abs(balance);
       } else {
         assetsTotal += balance;
-        if (asset.type === 'liquid') {
+        if (asset.type === 'liquid' || asset.type === 'savings' || asset.type === 'cash') {
           liquidAssetsTotal += balance;
         }
       }
     });
 
-    // Sumar saldos de todos los apartados (reservado)
+    // Sumar saldos de todos los apartados (reservado) asociados a activos líquidos
     const computedBuckets = Array.from(bucketsMap.values());
-    const reservedTotal = computedBuckets.reduce((sum, b) => sum + b.balance, 0);
+    let reservedTotal = 0;
+    computedBuckets.forEach(bucket => {
+      const parentAsset = assetsMap.get(bucket.assetId);
+      if (parentAsset && (parentAsset.type === 'liquid' || parentAsset.type === 'savings' || parentAsset.type === 'cash')) {
+        reservedTotal += bucket.balance;
+      }
+    });
 
     const netWorth = assetsTotal - liabilitiesTotal;
 
